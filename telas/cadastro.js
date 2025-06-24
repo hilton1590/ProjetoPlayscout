@@ -1,24 +1,25 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
-import { StatusBar } from 'expo-status-bar';
-import playscout from './assets/playscout.png';
 
-export default function App() {
+export default function Cadastro({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const handleCadastro = () => {
+    // Lógica de cadastro aqui
+
+    // Navegar para o MenuPrincipal ou para outra tela após o cadastro
+    navigation.navigate('MenuPrincipal');
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <StatusBar style="light" />
-      
-      {/* Imagem topo */}
-      <Image source={require('./assets/playscout.png')} style={styles.headerImage} />
-
-      {/* Conteúdo */}
+      <Image source={require('../assets/playscout.png')} style={styles.headerImage} />
       <View style={styles.container}>
-        <Text style={styles.title}>Login</Text>
+        <Text style={styles.title}>cadastro</Text>
 
-        <Text style={styles.label}>E-mail</Text>
+        <Text style={styles.label}>e-mail</Text>
         <TextInput
           style={styles.input}
           placeholder="hello@reallygreatsite.com"
@@ -27,7 +28,7 @@ export default function App() {
           onChangeText={setEmail}
         />
 
-        <Text style={styles.label}>Senha</Text>
+        <Text style={styles.label}>senha</Text>
         <TextInput
           style={styles.input}
           placeholder="••••••"
@@ -37,14 +38,24 @@ export default function App() {
           onChangeText={setPassword}
         />
 
-        <TouchableOpacity style={styles.loginButton}>
-          <Text style={styles.loginButtonText}>login</Text>
+        <Text style={styles.label}>confirmar senha</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="••••••"
+          placeholderTextColor="#999"
+          secureTextEntry
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
+
+        <TouchableOpacity style={styles.loginButton} onPress={handleCadastro}>
+          <Text style={styles.loginButtonText}>cadastrar</Text>
         </TouchableOpacity>
 
         <View style={styles.linksContainer}>
-          <Text style={styles.linkText}>
-            não tem conta? <Text style={styles.linkHighlight}>Cadastrar</Text>
-          </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.linkText}>já tem conta? entrar</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
@@ -92,7 +103,7 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: '#000',
     fontWeight: 'bold',
-    textTransform: 'lowercase',
+    textTransform: 'lowercase', // As letras do botão "Cadastrar" estão minúsculas
   },
   linksContainer: {
     alignItems: 'center',
@@ -100,10 +111,5 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#fff',
     marginBottom: 10,
-  },
-  linkHighlight: {
-    color: '#00f',
-    fontWeight: 'bold',
-    textDecorationLine: 'underline',
   },
 });

@@ -1,20 +1,41 @@
-import React from 'react';
-import { ScrollView, View, Text, TextInput, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import {
+  ScrollView, View, Text, TextInput, TouchableOpacity,
+  Image, StyleSheet, Alert,
+} from 'react-native';
 
 export default function LoginScreen({ navigation }) {
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+
+  const handleLogin = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/users');
+      const users = await response.json();
+
+      const user = users.find((u) => u.email === email && u.password === senha);
+
+      if (user) {
+        Alert.alert('Sucesso', 'Login efetuado!');
+        navigation.navigate('MenuPrincipal');
+      } else {
+        Alert.alert('Erro', 'E-mail ou senha inválidos');
+      }
+    } catch (error) {
+      Alert.alert('Erro', 'Falha na conexão com o servidor');
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Image
-        source={require('../assets/playscout.png')}
-        style={styles.image}
-        resizeMode="cover"
-      />
-
+      <Image source={require('../assets/playscout.png')} style={styles.image} />
       <Text style={styles.title}>login</Text>
 
       <Text style={styles.label}>e-mail</Text>
       <TextInput
         style={styles.input}
+        value={email}
+        onChangeText={setEmail}
         placeholder="hello@reallygreatsite.com"
         placeholderTextColor="#999"
         keyboardType="email-address"
@@ -24,21 +45,20 @@ export default function LoginScreen({ navigation }) {
       <Text style={styles.label}>senha</Text>
       <TextInput
         style={styles.input}
-        placeholder="**"
+        value={senha}
+        onChangeText={setSenha}
+        placeholder="••••••"
         placeholderTextColor="#999"
         secureTextEntry
       />
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>entrar</Text>
       </TouchableOpacity>
 
       <Text style={styles.footerText}>
-        não tem conta?{" "}
-        <Text
-          style={styles.linkText}
-          onPress={() => navigation.navigate('Cadastro')} // Navega para a tela de Cadastro
-        >
+        não tem conta?{' '}
+        <Text style={styles.linkText} onPress={() => navigation.navigate('Cadastro')}>
           cadastrar
         </Text>
       </Text>

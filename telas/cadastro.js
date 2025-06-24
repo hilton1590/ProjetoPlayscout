@@ -1,16 +1,50 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
+import {
+  StyleSheet, Text, View, TextInput, TouchableOpacity,
+  Image, ScrollView, Alert,
+} from 'react-native';
 
 export default function Cadastro({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleCadastro = () => {
-    // Lógica de cadastro aqui
+  const handleCadastro = async () => {
+    if (!email || !password || !confirmPassword) {
+      Alert.alert('Erro', 'Preencha todos os campos!');
+      return;
+    }
 
-    // Navegar para o MenuPrincipal ou para outra tela após o cadastro
-    navigation.navigate('MenuPrincipal');
+    if (password !== confirmPassword) {
+      Alert.alert('Erro', 'As senhas não coincidem!');
+      return;
+    }
+
+    try {
+      const res = await fetch('http://localhost:3000/users');
+      const users = await res.json();
+
+      const emailExiste = users.some((u) => u.email === email);
+      if (emailExiste) {
+        Alert.alert('Erro', 'Este e-mail já está cadastrado!');
+        return;
+      }
+
+      await fetch('http://localhost:3000/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
+          token: Math.random().toString(36).substring(2),
+        }),
+      });
+
+      Alert.alert('Sucesso', 'Cadastro realizado!');
+      navigation.navigate('Login');
+    } catch (error) {
+      Alert.alert('Erro', 'Erro ao conectar com o servidor');
+    }
   };
 
   return (

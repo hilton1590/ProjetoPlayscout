@@ -3,6 +3,7 @@ import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
   Image, StyleSheet, Alert,
 } from 'react-native';
+import axios from 'axios'; // ← IMPORTAÇÃO DO AXIOS
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -10,8 +11,8 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://localhost:3000/users');
-      const users = await response.json();
+      const response = await axios.get('http://localhost:3000/users'); // ← USO DO AXIOS
+      const users = response.data;
 
       const user = users.find((u) => u.email === email && u.password === senha);
 
@@ -36,7 +37,7 @@ export default function LoginScreen({ navigation }) {
         style={styles.input}
         value={email}
         onChangeText={setEmail}
-        placeholder="hello@reallygreatsite.com"
+        placeholder=""
         placeholderTextColor="#999"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -104,14 +105,14 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     height: 45,
-    backgroundColor: '#fff', // botão branco
+    backgroundColor: '#fff',
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 30,
   },
   buttonText: {
-    color: '#000', // texto preto
+    color: '#000',
     fontWeight: 'bold',
     fontSize: 16,
   },
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     color: '#aaa',
   },
   linkText: {
-    color: '#fff', // texto branco para "Cadastrar"
+    color: '#fff',
     fontWeight: 'bold',
   },
 });

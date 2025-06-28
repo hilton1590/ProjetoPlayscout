@@ -1,30 +1,46 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
+  View, Text, Image, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-
-import Ancelotti from '../assets/ancelotti.jpg';
-import Aston from '../assets/Aston-Villa.png';
-import Fulham from '../assets/fulham.png';
+import axios from 'axios';
 
 export default function MenuPrincipal() {
+  const [match, setMatch] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchMatch() {
+      try {
+        const response = await axios.get('https://v3.football.api-sports.io/fixtures', {
+          headers: {
+            'x-apisports-key': 'c33f4c4af00048fc32af1f462e2cb0ba',
+          },
+          params: {
+            league: 39, // Premier League
+            season: 2024,
+            next: 1,
+          },
+        });
+
+        const data = response.data.response[0];
+        setMatch(data);
+      } catch (error) {
+        console.error('Erro ao buscar dados da API:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchMatch();
+  }, []);
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color="#333" style={{ marginLeft: 10 }} />
-          <TextInput
-            placeholder="Buscar..."
-            placeholderTextColor="#666"
-            style={styles.input}
-          />
+          <TextInput placeholder="Buscar..." placeholderTextColor="#666" style={styles.input} />
         </View>
 
         <Text style={styles.title}>Principais notícias</Text>
@@ -33,34 +49,48 @@ export default function MenuPrincipal() {
           <Text style={styles.newsTitle}>
             Ancelotti faz mistério sobre seleção, mas Real já planeja futuro sem ele.
           </Text>
-          <Image source={Ancelotti} style={styles.image} />
+          <Image source={require('../assets/ancelotti.jpg')} style={styles.image} />
         </View>
 
-        <View style={styles.matchCard}>
-          <Text style={styles.matchTitle}>Premier League - 35ª Rodada</Text>
-          <Text style={styles.matchSub}>JOGÃO na Inglaterra</Text>
-          <Text style={styles.broadcastIcon}>📡 📡</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#fff" />
+        ) : match ? (
+          <View style={styles.matchCard}>
+            <Text style={styles.matchTitle}>
+              {match.league.name} - {match.league.round}
+            </Text>
+            <Text style={styles.matchSub}>
+              {match.teams.home.name} x {match.teams.away.name}
+            </Text>
+            <Text style={styles.broadcastIcon}>📡 📡</Text>
 
-          <View style={styles.scoreRow}>
-            <View style={styles.teamBox}>
-              <Image source={Aston} style={styles.teamLogo} />
-              <Text style={styles.teamName}>ASTON</Text>
+            <View style={styles.scoreRow}>
+              <View style={styles.teamBox}>
+                <Image source={{ uri: match.teams.home.logo }} style={styles.teamLogo} />
+                <Text style={styles.teamName}>{match.teams.home.name}</Text>
+              </View>
+
+              <Text style={styles.score}>
+                {match.goals.home} - {match.goals.away}
+              </Text>
+
+              <View style={styles.teamBox}>
+                <Image source={{ uri: match.teams.away.logo }} style={styles.teamLogo} />
+                <Text style={styles.teamNameRight}>{match.teams.away.name}</Text>
+              </View>
             </View>
 
-            <Text style={styles.score}>1 - 0</Text>
+            <Text style={styles.matchTime}>
+              {new Date(match.fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </Text>
 
-            <View style={styles.teamBox}>
-              <Image source={Fulham} style={styles.teamLogo} />
-              <Text style={styles.teamNameRight}>FULHAM</Text>
-            </View>
+            <TouchableOpacity>
+              <Text style={styles.detailsLink}>Detalhes do Jogo e análise ao vivo</Text>
+            </TouchableOpacity>
           </View>
-
-          <Text style={styles.matchTime}>20 : 33</Text>
-
-          <TouchableOpacity>
-            <Text style={styles.detailsLink}>Detalhes do Jogo e análise ao vivo</Text>
-          </TouchableOpacity>
-        </View>
+        ) : (
+          <Text style={{ color: '#fff', textAlign: 'center' }}>Nenhum jogo encontrado.</Text>
+        )}
       </ScrollView>
 
       <View style={styles.navbar}>
@@ -152,7 +182,7 @@ const styles = StyleSheet.create({
   },
   teamBox: {
     alignItems: 'center',
-    width: 70,
+    width: 80,
   },
   teamLogo: {
     width: 40,
@@ -164,11 +194,13 @@ const styles = StyleSheet.create({
     color: '#3949ab',
     fontWeight: 'bold',
     fontSize: 13,
+    textAlign: 'center',
   },
   teamNameRight: {
     color: '#e53935',
     fontWeight: 'bold',
     fontSize: 13,
+    textAlign: 'center',
   },
   score: {
     fontSize: 20,

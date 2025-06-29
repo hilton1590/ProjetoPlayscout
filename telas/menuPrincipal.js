@@ -1,14 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, Image, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator,
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import axios from 'axios';
 
-export default function MenuPrincipal() {
+export default function MenuPrincipal({ navigation }) {
   const [match, setMatch] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loadingMatch, setLoadingMatch] = useState(true);
+  const [news, setNews] = useState([]);
+  const [loadingNews, setLoadingNews] = useState(true);
 
+  const [searchText, setSearchText] = useState('');
+  const [searchTerm, setSearchTerm] = useState(
+    'futebol AND (campeonato OR jogador OR gol OR time OR técnico OR "partida ao vivo")'
+  ); // busca inicial específica
+
+  // Buscar partidas ao vivo da API Football (API-Sports)
   useEffect(() => {
     async function fetchMatch() {
       try {
@@ -19,40 +35,115 @@ export default function MenuPrincipal() {
           params: {
             league: 39, // Premier League
             season: 2024,
-            next: 1,
+            live: 'all',
           },
         });
 
-        const data = response.data.response[0];
+        const data = response.data.response.length > 0 ? response.data.response[0] : null;
         setMatch(data);
       } catch (error) {
-        console.error('Erro ao buscar dados da API:', error);
+        console.error('Erro ao buscar partidas ao vivo:', error);
       } finally {
-        setLoading(false);
+        setLoadingMatch(false);
       }
     }
-
     fetchMatch();
   }, []);
+
+  // Buscar notícias da NewsAPI ao mudar searchTerm
+  useEffect(() => {
+    async function fetchNews() {
+      setLoadingNews(true);
+      try {
+        const response = await axios.get('https://newsapi.org/v2/everything', {
+          params: {
+            q: searchTerm || 'futebol AND (campeonato OR jogador OR gol OR time OR técnico OR "partida ao vivo")',
+            language: 'pt',
+            sortBy: 'publishedAt',
+            apiKey: 'da079195afc94296843cdb95bcc2cf2f',
+            pageSize: 10,
+          },
+        });
+        setNews(response.data.articles);
+      } catch (error) {
+        console.error('Erro ao buscar notícias:', error);
+        setNews([]);
+      } finally {
+        setLoadingNews(false);
+      }
+    }
+    fetchNews();
+  }, [searchTerm]);
+
+  // Filtro local para garantir ainda mais relevância
+  const keywords = ['futebol', 'campeonato', 'jogador', 'gol', 'time', 'técnico', 'partida'];
+
+  const filteredNews = news.filter(article => {
+    const text = (article.title + ' ' + (article.description || '')).toLowerCase();
+    return keywords.some(keyword => text.includes(keyword));
+  });
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Barra de busca com botão */}
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color="#333" style={{ marginLeft: 10 }} />
-          <TextInput placeholder="Buscar..." placeholderTextColor="#666" style={styles.input} />
+          <TextInput
+            placeholder="Buscar notícias..."
+            placeholderTextColor="#666"
+            style={styles.input}
+            value={searchText}
+            onChangeText={setSearchText}
+            onSubmitEditing={() => {
+              const trimmed = searchText.trim();
+              setSearchTerm(
+                trimmed
+                  ? `${trimmed} AND (campeonato OR jogador OR gol OR time OR técnico OR "partida ao vivo")`
+                  : 'futebol AND (campeonato OR jogador OR gol OR time OR técnico OR "partida ao vivo")'
+              );
+            }}
+          />
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => {
+              const trimmed = searchText.trim();
+              setSearchTerm(
+                trimmed
+                  ? `${trimmed} AND (campeonato OR jogador OR gol OR time OR técnico OR "partida ao vivo")`
+                  : 'futebol AND (campeonato OR jogador OR gol OR time OR técnico OR "partida ao vivo")'
+              );
+            }}
+          >
+            <Text style={styles.searchButtonText}>Buscar</Text>
+          </TouchableOpacity>
         </View>
 
+        {/* Lista de notícias */}
         <Text style={styles.title}>Principais notícias</Text>
+        {loadingNews ? (
+          <ActivityIndicator size="large" color="#fff" />
+        ) : filteredNews.length > 0 ? (
+          filteredNews.map((article, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.newsCard}
+              onPress={() => Linking.openURL(article.url)}
+            >
+              {article.urlToImage && (
+                <Image source={{ uri: article.urlToImage }} style={styles.image} />
+              )}
+              <Text style={styles.newsTitle}>{article.title}</Text>
+              <Text style={styles.newsSource}>{article.source.name}</Text>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text style={{ color: '#fff', textAlign: 'center' }}>Nenhuma notícia encontrada.</Text>
+        )}
 
-        <View style={styles.newsCard}>
-          <Text style={styles.newsTitle}>
-            Ancelotti faz mistério sobre seleção, mas Real já planeja futuro sem ele.
-          </Text>
-          <Image source={require('../assets/ancelotti.jpg')} style={styles.image} />
-        </View>
-
-        {loading ? (
+        {/* Partida ao vivo */}
+        <Text style={[styles.title, { marginTop: 20 }]}>Partida ao vivo</Text>
+        {loadingMatch ? (
           <ActivityIndicator size="large" color="#fff" />
         ) : match ? (
           <View style={styles.matchCard}>
@@ -71,7 +162,7 @@ export default function MenuPrincipal() {
               </View>
 
               <Text style={styles.score}>
-                {match.goals.home} - {match.goals.away}
+                {match.goals.home ?? '-'} - {match.goals.away ?? '-'}
               </Text>
 
               <View style={styles.teamBox}>
@@ -81,7 +172,10 @@ export default function MenuPrincipal() {
             </View>
 
             <Text style={styles.matchTime}>
-              {new Date(match.fixture.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {new Date(match.fixture.date).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
             </Text>
 
             <TouchableOpacity>
@@ -89,15 +183,25 @@ export default function MenuPrincipal() {
             </TouchableOpacity>
           </View>
         ) : (
-          <Text style={{ color: '#fff', textAlign: 'center' }}>Nenhum jogo encontrado.</Text>
+          <Text style={{ color: '#fff', textAlign: 'center' }}>
+            Nenhuma partida ao vivo no momento.
+          </Text>
         )}
       </ScrollView>
 
       <View style={styles.navbar}>
-        <FontAwesome5 name="calendar-alt" size={22} color="#fff" />
-        <Ionicons name="trophy" size={22} color="#fff" />
-        <Ionicons name="notifications" size={22} color="#fff" />
-        <MaterialIcons name="bar-chart" size={22} color="#fff" />
+        <TouchableOpacity onPress={() => navigation.navigate('Calendario')}>
+          <FontAwesome5 name="calendar-alt" size={22} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Torneios')}>
+          <Ionicons name="trophy" size={22} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Notificacoes')}>
+          <Ionicons name="notifications" size={22} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Estatisticas')}>
+          <MaterialIcons name="bar-chart" size={22} color="#fff" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -127,6 +231,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#000',
   },
+  searchButton: {
+    backgroundColor: '#1565c0',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+    justifyContent: 'center',
+    marginRight: 5,
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
@@ -143,9 +260,15 @@ const styles = StyleSheet.create({
   },
   newsTitle: {
     fontWeight: 'bold',
-    fontSize: 13,
-    textAlign: 'center',
-    marginBottom: 8,
+    fontSize: 14,
+    marginTop: 8,
+    color: '#000',
+  },
+  newsSource: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    textAlign: 'right',
   },
   image: {
     width: '100%',

@@ -43,7 +43,7 @@ export default function SeuTime({ navigation }) {
         {
           headers: {
             'x-apisports-key': API_KEY,
-            'Accept': 'application/json',
+            Accept: 'application/json',
           },
         }
       );
@@ -139,8 +139,19 @@ export default function SeuTime({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+
+        {/* HEADER COM SETA VOLTAR, LOGO CENTRALIZADA E ÍCONE DE NOTIFICAÇÃO */}
         <View style={styles.topBar}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="arrow-back" size={28} color="#fff" />
+          </TouchableOpacity>
+
           <Image source={require('../assets/logo.png')} style={styles.logo} />
+
           <Ionicons name="notifications" size={24} color="#fff" />
         </View>
 
@@ -244,13 +255,29 @@ export default function SeuTime({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#000' },
   container: { flex: 1, padding: 15, paddingBottom: 80 },
+
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 15,
+    // Altura mínima para caber o ícone e a logo
+    minHeight: 50,
   },
-  logo: { width: 50, height: 50, resizeMode: 'contain' },
+  backButton: {
+    paddingRight: 10,
+    // para garantir a seta não grudar na borda esquerda
+  },
+
+  logo: {
+    width: 50,
+    height: 50,
+    resizeMode: 'contain',
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -25, // metade da largura pra centralizar exata
+  },
+
   title: {
     color: '#fff',
     fontSize: 22,

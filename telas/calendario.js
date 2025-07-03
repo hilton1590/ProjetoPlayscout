@@ -8,11 +8,13 @@ import {
   Image,
   TouchableOpacity,
 } from 'react-native';
+
+import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 
 const API_KEY = '8c54011079c4f1b49846ec32e822b41d8cd8b1aa2da96cfaf5b6860db3293378';
 
-export default function Calendario() {
+export default function Calendario({ navigation }) {
   const [fixtures, setFixtures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
@@ -24,7 +26,6 @@ export default function Calendario() {
     ).padStart(2, '0')}`;
   }
 
-  // Atualiza fixtures — se silent, evita atualizar estado se jogos não mudaram
   async function fetchFixtures(silent = false) {
     try {
       const today = getTodayDate();
@@ -46,7 +47,6 @@ export default function Calendario() {
         return;
       }
 
-      // Ordena cronologicamente
       let newList = resp.data.result.sort(
         (a, b) =>
           new Date(`${a.event_date}T${a.event_time}:00-03:00`) -
@@ -54,11 +54,9 @@ export default function Calendario() {
       );
 
       if (silent) {
-        // Compara só os event_keys, se igual não atualiza o state para evitar flicker
         const oldKeys = fixtures.map((f) => f.event_key);
         const newKeys = newList.map((f) => f.event_key);
         if (JSON.stringify(oldKeys) === JSON.stringify(newKeys)) {
-          // Checa se algum placar ou status mudou para atualizar só o necessário
           let hasChanges = false;
           for (let i = 0; i < newList.length; i++) {
             if (
@@ -72,7 +70,6 @@ export default function Calendario() {
             }
           }
           if (!hasChanges) {
-            // Não atualiza nada para evitar flicker
             return;
           }
         }
@@ -91,8 +88,8 @@ export default function Calendario() {
 
   useEffect(() => {
     fetchFixtures();
-    const intervalFetch = setInterval(() => fetchFixtures(true), 25000); // fetch silencioso
-    const intervalNow = setInterval(() => setNow(new Date()), 30000); // atualiza "now" p/ tempo ao vivo
+    const intervalFetch = setInterval(() => fetchFixtures(true), 25000);
+    const intervalNow = setInterval(() => setNow(new Date()), 30000);
     return () => {
       clearInterval(intervalFetch);
       clearInterval(intervalNow);
@@ -105,7 +102,6 @@ export default function Calendario() {
     const isLive = item.event_live === '1';
     const isNotStarted = item.event_status === 'Not Started';
 
-    // Placar exibido
     let score = 'x';
     if ((isLive || isFinished) && item.event_final_result) {
       const [homeScore, awayScore] = item.event_final_result.split(' - ');
@@ -114,7 +110,6 @@ export default function Calendario() {
       score = '– x –';
     }
 
-    // Status do jogo com minuto exato
     let status = '';
     if (isNotStarted) {
       status = new Date(fixtureDateTime).toLocaleTimeString('pt-BR', {
@@ -122,7 +117,6 @@ export default function Calendario() {
         minute: '2-digit',
       });
     } else if (isLive) {
-      // Use event_minute se disponível, senão calcule
       let minuto = item.event_minute;
       if (minuto === undefined || minuto === null) {
         minuto = Math.floor((Date.now() - fixtureDateTime) / 60000);
@@ -162,8 +156,25 @@ export default function Calendario() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.safeArea}>
+      {/* HEADER */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="arrow-back" size={28} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Troque essa imagem pelo logo da Play Scout */}
+        <Image source={require('../assets/logo.png')} style={styles.logo} />
+
+        <View style={{ width: 28 }} /> {/* Placeholder para balancear o espaço */}
+      </View>
+
       <Text style={styles.title}>Jogos de Hoje ({getTodayDate()})</Text>
+
       {loading ? (
         <ActivityIndicator size="large" color="#fff" />
       ) : fixtures.length === 0 ? (
@@ -173,7 +184,7 @@ export default function Calendario() {
           data={fixtures}
           keyExtractor={(item) => item.event_key}
           renderItem={renderItem}
-          extraData={now} // força atualização de minutos
+          extraData={now}
           contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
@@ -182,11 +193,29 @@ export default function Calendario() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#000',
     paddingTop: 40,
     paddingHorizontal: 10,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 50,
+    marginBottom: 10,
+  },
+  backButton: {
+    paddingRight: 10,
+  },
+  logo: {
+    width: 50,
+    height: 50,
+    resizeMode: 'contain',
+    position: 'absolute',
+    left: '50%',
+    marginLeft: -25,
   },
   title: {
     color: '#fff',
@@ -216,7 +245,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  logo: {
+  logoTeam: {
     width: 40,
     height: 40,
     marginBottom: 5,

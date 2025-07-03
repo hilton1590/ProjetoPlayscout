@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,140 +10,147 @@ import {
 } from 'react-native';
 import axios from 'axios';
 
+const API_KEY = '8c54011079c4f1b49846ec32e822b41d8cd8b1aa2da96cfaf5b6860db3293378';
+
 export default function Calendario() {
   const [fixtures, setFixtures] = useState([]);
   const [loading, setLoading] = useState(true);
   const [now, setNow] = useState(new Date());
-  const timeoutRef = useRef(null);
 
   function getTodayDate() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const t = new Date();
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(
+      t.getDate()
+    ).padStart(2, '0')}`;
   }
 
-  async function fetchFixtures() {
-    setLoading(true);
+  // Atualiza fixtures — se silent, evita atualizar estado se jogos não mudaram
+  async function fetchFixtures(silent = false) {
     try {
       const today = getTodayDate();
-
-      const response = await axios.get('https://v3.football.api-sports.io/fixtures', {
-        headers: {
-          'x-apisports-key': '5b1504a699f0b8a041aa4f8fff3a501f',
-        },
+      const resp = await axios.get('https://apiv2.allsportsapi.com/football/', {
         params: {
-          date: today,
+          met: 'Fixtures',
+          APIkey: API_KEY,
+          from: today,
+          to: today,
           timezone: 'America/Sao_Paulo',
         },
       });
 
-      setFixtures(response.data.response);
+      if (resp.data.success !== 1 || !Array.isArray(resp.data.result)) {
+        if (!silent) {
+          setFixtures([]);
+          setLoading(false);
+        }
+        return;
+      }
+
+      // Ordena cronologicamente
+      let newList = resp.data.result.sort(
+        (a, b) =>
+          new Date(`${a.event_date}T${a.event_time}:00-03:00`) -
+          new Date(`${b.event_date}T${b.event_time}:00-03:00`)
+      );
+
+      if (silent) {
+        // Compara só os event_keys, se igual não atualiza o state para evitar flicker
+        const oldKeys = fixtures.map((f) => f.event_key);
+        const newKeys = newList.map((f) => f.event_key);
+        if (JSON.stringify(oldKeys) === JSON.stringify(newKeys)) {
+          // Checa se algum placar ou status mudou para atualizar só o necessário
+          let hasChanges = false;
+          for (let i = 0; i < newList.length; i++) {
+            if (
+              fixtures[i].event_final_result !== newList[i].event_final_result ||
+              fixtures[i].event_status !== newList[i].event_status ||
+              fixtures[i].event_live !== newList[i].event_live ||
+              fixtures[i].event_minute !== newList[i].event_minute
+            ) {
+              hasChanges = true;
+              break;
+            }
+          }
+          if (!hasChanges) {
+            // Não atualiza nada para evitar flicker
+            return;
+          }
+        }
+      }
+
+      setFixtures(newList);
+      setLoading(false);
     } catch (error) {
       console.error('Erro ao buscar jogos:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function scheduleUpdateAfterLastGame() {
-    if (!fixtures.length) return;
-
-    const lastGame = fixtures.reduce((latest, current) => {
-      const currentTime = new Date(current.fixture.date).getTime();
-      const latestTime = new Date(latest.fixture.date).getTime();
-      return currentTime > latestTime ? current : latest;
-    });
-
-    const lastGameTime = new Date(lastGame.fixture.date).getTime();
-    const delay = lastGameTime + 10 * 60 * 1000 - Date.now();
-
-    if (delay > 0) {
-      timeoutRef.current = setTimeout(() => {
-        fetchFixtures();
-        scheduleUpdateAfterLastGame();
-      }, delay);
-    } else {
-      fetchFixtures();
+      if (!silent) {
+        setLoading(false);
+        setFixtures([]);
+      }
     }
   }
 
   useEffect(() => {
     fetchFixtures();
-    const interval = setTimeout(() => {
-      scheduleUpdateAfterLastGame();
-    }, 2000);
-
+    const intervalFetch = setInterval(() => fetchFixtures(true), 25000); // fetch silencioso
+    const intervalNow = setInterval(() => setNow(new Date()), 30000); // atualiza "now" p/ tempo ao vivo
     return () => {
-      clearTimeout(interval);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      clearInterval(intervalFetch);
+      clearInterval(intervalNow);
     };
   }, []);
 
-  // Atualiza o tempo a cada 30 segundos para manter o minuto sempre certo
-  useEffect(() => {
-    const timeUpdater = setInterval(() => {
-      setNow(new Date());
-    }, 30 * 1000); // atualiza duas vezes por minuto
-
-    return () => clearInterval(timeUpdater);
-  }, []);
-
-  const renderItem = ({ item }) => {
-    const { home, away } = item.teams;
-    const { date, status } = item.fixture;
-    const { home: homeGoals, away: awayGoals } = item.goals;
-
-    const fixtureTime = new Date(date);
-
-    const isFinished = status.short === 'FT';
-    const isLive = ['1H', '2H', 'ET', 'P', 'LIVE'].includes(status.short);
-    const isNotStarted = status.short === 'NS';
+  function renderItem({ item }) {
+    const fixtureDateTime = new Date(`${item.event_date}T${item.event_time}:00-03:00`).getTime();
+    const isFinished = item.event_status === 'Finished';
+    const isLive = item.event_live === '1';
+    const isNotStarted = item.event_status === 'Not Started';
 
     // Placar exibido
-    let scoreDisplay = 'x';
-    if ((isLive || isFinished) && homeGoals !== null && awayGoals !== null) {
-      scoreDisplay = `${homeGoals} x ${awayGoals}`;
-    } else if (isLive && (homeGoals === null || awayGoals === null)) {
-      scoreDisplay = '– x –';
+    let score = 'x';
+    if ((isLive || isFinished) && item.event_final_result) {
+      const [homeScore, awayScore] = item.event_final_result.split(' - ');
+      score = `${homeScore} x ${awayScore}`;
+    } else if (isLive) {
+      score = '– x –';
     }
 
-    // Cálculo do tempo corrido (simulado em tempo real)
-    let statusDisplay = '';
-    if (isFinished) {
-      statusDisplay = 'Finalizado';
-    } else if (isNotStarted) {
-      const formattedTime = fixtureTime.toLocaleTimeString('pt-BR', {
+    // Status do jogo com minuto exato
+    let status = '';
+    if (isNotStarted) {
+      status = new Date(fixtureDateTime).toLocaleTimeString('pt-BR', {
         hour: '2-digit',
         minute: '2-digit',
       });
-      statusDisplay = `${formattedTime}`;
     } else if (isLive) {
-      const elapsed = Math.floor((now.getTime() - fixtureTime.getTime()) / 60000);
-      statusDisplay = `${elapsed > 0 ? elapsed : 0}’`;
-    } else if (status.elapsed !== null) {
-      statusDisplay = `${status.elapsed}’`;
+      // Use event_minute se disponível, senão calcule
+      let minuto = item.event_minute;
+      if (minuto === undefined || minuto === null) {
+        minuto = Math.floor((Date.now() - fixtureDateTime) / 60000);
+        minuto = minuto > 0 ? minuto : 0;
+      }
+      status = `${minuto}’`;
+    } else if (isFinished) {
+      status = 'Finalizado';
     } else {
-      statusDisplay = status.short;
+      status = item.event_status;
     }
 
     return (
       <View style={styles.card}>
         <View style={styles.teamsRow}>
           <View style={styles.team}>
-            <Image source={{ uri: home.logo }} style={styles.logo} />
-            <Text style={styles.teamName}>{home.name}</Text>
+            {item.home_team_logo && <Image source={{ uri: item.home_team_logo }} style={styles.logo} />}
+            <Text style={styles.teamName}>{item.event_home_team}</Text>
           </View>
 
           <View style={styles.scoreBox}>
-            <Text style={styles.scoreText}>{scoreDisplay}</Text>
-            <Text style={styles.statusText}>{statusDisplay}</Text>
+            <Text style={styles.scoreText}>{score}</Text>
+            <Text style={styles.statusText}>{status}</Text>
           </View>
 
           <View style={styles.team}>
-            <Image source={{ uri: away.logo }} style={styles.logo} />
-            <Text style={styles.teamName}>{away.name}</Text>
+            {item.away_team_logo && <Image source={{ uri: item.away_team_logo }} style={styles.logo} />}
+            <Text style={styles.teamName}>{item.event_away_team}</Text>
           </View>
         </View>
 
@@ -152,7 +159,7 @@ export default function Calendario() {
         </TouchableOpacity>
       </View>
     );
-  };
+  }
 
   return (
     <View style={styles.container}>
@@ -160,14 +167,13 @@ export default function Calendario() {
       {loading ? (
         <ActivityIndicator size="large" color="#fff" />
       ) : fixtures.length === 0 ? (
-        <Text style={{ color: '#fff', textAlign: 'center', marginTop: 20 }}>
-          Nenhum jogo disponível hoje.
-        </Text>
+        <Text style={styles.noGamesText}>Nenhum jogo disponível hoje.</Text>
       ) : (
         <FlatList
           data={fixtures}
-          keyExtractor={(item) => item.fixture.id.toString()}
+          keyExtractor={(item) => item.event_key}
           renderItem={renderItem}
+          extraData={now} // força atualização de minutos
           contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
@@ -188,6 +194,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
+  },
+  noGamesText: {
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 20,
   },
   card: {
     backgroundColor: '#1a1a1a',

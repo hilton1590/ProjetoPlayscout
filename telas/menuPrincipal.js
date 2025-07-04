@@ -1,16 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+import axios from 'axios';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
   Image,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
+  View,
 } from 'react-native';
-import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
-import axios from 'axios';
 
 export default function MenuPrincipal({ navigation }) {
   const [matches, setMatches] = useState([]);
@@ -24,8 +24,12 @@ export default function MenuPrincipal({ navigation }) {
     async function fetchMatch() {
       try {
         const response = await axios.get('https://v3.football.api-sports.io/fixtures', {
-          headers: { 'x-apisports-key': 'c33f4c4af00048fc32af1f462e2cb0ba' },
-          params: { live: 'all' },
+          headers: {
+            'x-apisports-key': 'c33f4c4af00048fc32af1f462e2cb0ba', // sua chave de API
+          },
+          params: {
+            status: 'live', // ✅ CORRIGIDO AQUI
+          },
         });
         setMatches(response.data.response);
       } catch (error) {
@@ -34,6 +38,7 @@ export default function MenuPrincipal({ navigation }) {
         setLoadingMatch(false);
       }
     }
+
     fetchMatch();
   }, []);
 
@@ -61,17 +66,42 @@ export default function MenuPrincipal({ navigation }) {
     fetchNews();
   }, [searchTerm]);
 
-  // Filtragem local para garantir só notícias de futebol relevantes
-  const keywords = ['futebol', 'campeonato', 'jogador', 'gol', 'time', 'técnico', 'partida'];
+  const keywords = [
+    'futebol', 'gol', 'campeonato', 'liga', 'time', 'clube',
+    'atacante', 'zagueiro', 'meia', 'volante', 'técnico',
+    'treinador', 'jogo', 'partida', 'cartão', 'pênalti', 'torcida'
+  ];
+
+  const ignoredSources = ['Globo', 'UOL Economia', 'Revista Veja', 'Estadão Política'];
+  const negativeWords = ['covid', 'vacina', 'política', 'morte', 'governo'];
+
+  const normalize = str =>
+    str?.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  const seenTitles = new Set();
   const filteredNews = news.filter(article => {
-    const text = ((article.title || '') + ' ' + (article.description || '')).toLowerCase();
-    return keywords.some(keyword => text.includes(keyword));
+    if (!article.title || !article.description) return false;
+
+    const title = normalize(article.title);
+    const description = normalize(article.description);
+    const fullText = `${title} ${description}`;
+
+    if (ignoredSources.includes(article.source.name)) return false;
+    if (negativeWords.some(w => fullText.includes(w))) return false;
+
+    const relevantWords = keywords.filter(keyword => fullText.includes(keyword));
+    const isDuplicate = seenTitles.has(title);
+
+    if (relevantWords.length >= 2 && !isDuplicate) {
+      seenTitles.add(title);
+      return true;
+    }
+    return false;
   });
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Barra de busca */}
         <View style={styles.searchBar}>
           <Ionicons name="search" size={18} color="#333" style={{ marginLeft: 10 }} />
           <TextInput
@@ -96,7 +126,6 @@ export default function MenuPrincipal({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Notícias */}
         <Text style={styles.title}>Principais notícias</Text>
         {loadingNews ? (
           <ActivityIndicator size="large" color="#fff" />
@@ -115,10 +144,9 @@ export default function MenuPrincipal({ navigation }) {
             </TouchableOpacity>
           ))
         ) : (
-          <Text style={{ color: '#fff', textAlign: 'center' }}>Nenhuma notícia encontrada.</Text>
+          <Text style={{ color: '#fff', textAlign: 'center' }}>Nenhuma notícia relevante encontrada.</Text>
         )}
 
-        {/* Partidas ao vivo */}
         <Text style={[styles.title, { marginTop: 20 }]}>Partidas ao vivo</Text>
         {loadingMatch ? (
           <ActivityIndicator size="large" color="#fff" />
@@ -166,7 +194,6 @@ export default function MenuPrincipal({ navigation }) {
         )}
       </ScrollView>
 
-      {/* Menu de navegação */}
       <View style={styles.navbar}>
         <TouchableOpacity onPress={() => navigation.navigate('Calendario')}>
           <FontAwesome5 name="calendar-alt" size={22} color="#fff" />
@@ -196,12 +223,7 @@ const styles = StyleSheet.create({
     height: 35,
     marginBottom: 10,
   },
-  input: {
-    flex: 1,
-    paddingHorizontal: 10,
-    fontSize: 14,
-    color: '#000',
-  },
+  input: { flex: 1, paddingHorizontal: 10, fontSize: 14, color: '#000' },
   searchButton: {
     backgroundColor: '#1565c0',
     paddingHorizontal: 12,

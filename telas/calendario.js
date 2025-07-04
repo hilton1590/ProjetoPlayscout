@@ -1,17 +1,40 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  ActivityIndicator,
-  Image,
-  TouchableOpacity,
-} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
 
 const API_KEY = '8c54011079c4f1b49846ec32e822b41d8cd8b1aa2da96cfaf5b6860db3293378';
+
+const mainLeagues = [
+  'Premier League',
+  'La Liga',
+  'Serie A',
+  'Bundesliga',
+  'Brasileirão',
+  'Liga MX',
+  'UEFA Champions League',
+  'Copa Libertadores'
+];
+
+function translateStatus(statusRaw) {
+  if (!statusRaw) return '';
+  const s = statusRaw.toLowerCase();
+  if (s === 'finished' || s === 'ft') return 'Finalizado';
+  if (s === 'cancelled') return 'Cancelado';
+  if (s === 'ht' || s === 'half time') return 'Intervalo';
+  if (s === 'postponed') return 'Adiado';
+  if (s === 'abandoned') return 'Interrompido';
+  if (s.match(/\d+'(\+\d+')?/)) return statusRaw;
+  return statusRaw;
+}
 
 export default function Calendario({ navigation }) {
   const [fixtures, setFixtures] = useState([]);
@@ -36,11 +59,6 @@ export default function Calendario({ navigation }) {
       });
 
       if (resp.data.success === 1 && Array.isArray(resp.data.result)) {
-        // DEBUG: Mostrar dados do primeiro jogo para inspecionar goalscorer
-        if (resp.data.result.length > 0) {
-          console.log('Exemplo goalscorer do primeiro jogo:', resp.data.result[0].goalscorer);
-        }
-
         const sorted = resp.data.result.sort(
           (a, b) =>
             new Date(`${a.event_date}T${a.event_time}:00-03:00`) -
@@ -64,11 +82,48 @@ export default function Calendario({ navigation }) {
     return () => clearInterval(interval);
   }, []);
 
-  function renderItem({ item }) {
-    const status = item.event_status;
-    const isFinished = status.toLowerCase() === 'finished';
+  const groupedFixtures = fixtures.reduce((groups, item) => {
+    const leagueName = item.league_name;
+    const leagueCountry = item.league_country;
+    if (leagueName === 'Premier League' && leagueCountry !== 'England') return groups;
+    const leagueKey = `${leagueName} (${leagueCountry})`;
+    if (!groups[leagueKey]) groups[leagueKey] = [];
+    groups[leagueKey].push(item);
+    return groups;
+  }, {});
+
+  const orderedLeagues = Object.keys(groupedFixtures).sort((a, b) => {
+    const nameA = a.split(' (')[0];
+    const nameB = b.split(' (')[0];
+
+    const hasLiveA = groupedFixtures[a].some((game) => game.event_live === '1');
+    const hasLiveB = groupedFixtures[b].some((game) => game.event_live === '1');
+
+    if (hasLiveA && !hasLiveB) return -1;
+    if (!hasLiveA && hasLiveB) return 1;
+
+    const idxA = mainLeagues.indexOf(nameA);
+    const idxB = mainLeagues.indexOf(nameB);
+
+    if (idxA !== -1 || idxB !== -1) {
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      return idxA === -1 ? 1 : -1;
+    }
+
+    return nameA.localeCompare(nameB);
+  });
+
+  function renderItem(item) {
+    const statusRaw = item.event_status;
+    const isFinished = statusRaw?.toLowerCase() === 'finished' || statusRaw === 'FT';
     const isLive = item.event_live === '1' && !isFinished;
-    const isNotStarted = status === 'Not Started';
+
+    const isNotStarted =
+      statusRaw === 'Not Started' ||
+      statusRaw === 'NS' ||
+      statusRaw === '' ||
+      statusRaw === null ||
+      (item.event_live === '0' && !item.event_final_result);
 
     const score =
       (isLive || isFinished) && item.event_final_result
@@ -76,46 +131,35 @@ export default function Calendario({ navigation }) {
         : 'x';
 
     let displayStatus = '';
+
     if (isNotStarted) {
-      displayStatus = new Date(`${item.event_date}T${item.event_time}:00-03:00`).toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } else if (isLive) {
-      displayStatus = 'Ao vivo';
-    } else if (status.toLowerCase().includes('half')) {
-      displayStatus = 'Intervalo';
-    } else if (isFinished) {
-      displayStatus = 'Finalizado';
+      displayStatus = new Date(`${item.event_date}T${item.event_time}:00-03:00`)
+        .toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     } else {
-      displayStatus = status;
+      displayStatus = translateStatus(statusRaw);
     }
 
-    // Monta a lista de eventos: gols e cartões
     const eventos = [];
 
-    // Gols (todos)
     if (item.goalscorer && Array.isArray(item.goalscorer)) {
       item.goalscorer.forEach((g) => {
         const time = g.time || '';
-        // Tentando puxar nome do jogador corretamente
+        const isHome = !!g.home_scorer;
         const player =
           g.home_scorer?.trim() ||
           g.away_scorer?.trim() ||
-          g.player?.trim() || // tentativa extra
+          g.player?.trim() ||
           'Gol';
-
-        eventos.push(`${time}’ ⚽ ${player}`);
+        eventos.push(`${time}’ ⚽ [${isHome ? 'CASA' : 'VIS'}] ${player}`);
       });
     }
 
-    // Cartões
     if (item.cards && Array.isArray(item.cards)) {
       item.cards.forEach((c) => {
-        const abbr = c.home_fault ? 'CASA' : 'VIS';
+        const isHome = !!c.home_fault;
         const player = (c.home_fault || c.away_fault || '').trim();
         const cardIcon = c.card === 'yellow card' ? '🟨' : '🟥';
-        eventos.push(`${c.time}’ ${cardIcon} [${abbr}] ${player}`);
+        eventos.push(`${c.time}’ ${cardIcon} [${isHome ? 'CASA' : 'VIS'}] ${player}`);
       });
     }
 
@@ -166,12 +210,16 @@ export default function Calendario({ navigation }) {
       ) : fixtures.length === 0 ? (
         <Text style={styles.noGames}>Nenhum jogo disponível hoje.</Text>
       ) : (
-        <FlatList
-          data={fixtures}
-          keyExtractor={(item) => item.event_key}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 20 }}
-        />
+        <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+          {orderedLeagues.map((league) => (
+            <View key={league}>
+              <View style={styles.leagueContainer}>
+                <Text style={styles.leagueTitle}>🏆 {league}</Text>
+              </View>
+              {groupedFixtures[league].map((game) => renderItem(game))}
+            </View>
+          ))}
+        </ScrollView>
       )}
     </View>
   );
@@ -183,6 +231,20 @@ const styles = StyleSheet.create({
   back: { padding: 10 },
   title: { color: '#fff', fontSize: 22, fontWeight: 'bold', textAlign: 'center' },
   noGames: { color: '#fff', textAlign: 'center', marginTop: 20 },
+  leagueContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  leagueTitle: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'left',
+  },
   card: { backgroundColor: '#1a1a1a', borderRadius: 10, padding: 12, marginBottom: 10 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   team: { flex: 1, alignItems: 'center' },

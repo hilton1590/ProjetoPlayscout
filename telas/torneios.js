@@ -14,7 +14,7 @@ const App = ({ navigation }) => {
   const ligas = [
     { label: 'Brasileirão Série A', value: 99 },
     { label: 'Premier League', value: 152 },
-    { label: 'La Liga', value: 302 }, // ← ID real da La Liga
+    { label: 'Ligue 1', value: 168 }, // ← ID real da La Liga
     { label: 'Serie A', value: 207 },
     { label: 'Bundesliga', value: 175 },
   ];

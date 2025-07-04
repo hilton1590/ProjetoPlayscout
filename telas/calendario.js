@@ -8,7 +8,6 @@ import {
   Image,
   TouchableOpacity,
 } from 'react-native';
-
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 
@@ -17,16 +16,13 @@ const API_KEY = '8c54011079c4f1b49846ec32e822b41d8cd8b1aa2da96cfaf5b6860db329337
 export default function Calendario({ navigation }) {
   const [fixtures, setFixtures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [now, setNow] = useState(new Date());
 
   function getTodayDate() {
     const t = new Date();
-    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(
-      t.getDate()
-    ).padStart(2, '0')}`;
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
   }
 
-  async function fetchFixtures(silent = false) {
+  async function fetchFixtures() {
     try {
       const today = getTodayDate();
       const resp = await axios.get('https://apiv2.allsportsapi.com/football/', {
@@ -39,152 +35,141 @@ export default function Calendario({ navigation }) {
         },
       });
 
-      if (resp.data.success !== 1 || !Array.isArray(resp.data.result)) {
-        if (!silent) {
-          setFixtures([]);
-          setLoading(false);
+      if (resp.data.success === 1 && Array.isArray(resp.data.result)) {
+        // DEBUG: Mostrar dados do primeiro jogo para inspecionar goalscorer
+        if (resp.data.result.length > 0) {
+          console.log('Exemplo goalscorer do primeiro jogo:', resp.data.result[0].goalscorer);
         }
-        return;
-      }
 
-      let newList = resp.data.result.sort(
-        (a, b) =>
-          new Date(`${a.event_date}T${a.event_time}:00-03:00`) -
-          new Date(`${b.event_date}T${b.event_time}:00-03:00`)
-      );
-
-      if (silent) {
-        const oldKeys = fixtures.map((f) => f.event_key);
-        const newKeys = newList.map((f) => f.event_key);
-        if (JSON.stringify(oldKeys) === JSON.stringify(newKeys)) {
-          let hasChanges = false;
-          for (let i = 0; i < newList.length; i++) {
-            if (
-              fixtures[i].event_final_result !== newList[i].event_final_result ||
-              fixtures[i].event_status !== newList[i].event_status ||
-              fixtures[i].event_live !== newList[i].event_live ||
-              fixtures[i].event_minute !== newList[i].event_minute
-            ) {
-              hasChanges = true;
-              break;
-            }
-          }
-          if (!hasChanges) {
-            return;
-          }
-        }
-      }
-
-      setFixtures(newList);
-      setLoading(false);
-    } catch (error) {
-      console.error('Erro ao buscar jogos:', error);
-      if (!silent) {
-        setLoading(false);
+        const sorted = resp.data.result.sort(
+          (a, b) =>
+            new Date(`${a.event_date}T${a.event_time}:00-03:00`) -
+            new Date(`${b.event_date}T${b.event_time}:00-03:00`)
+        );
+        setFixtures(sorted);
+      } else {
         setFixtures([]);
       }
+    } catch (error) {
+      console.error('Erro ao buscar jogos:', error);
+      setFixtures([]);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
     fetchFixtures();
-    const intervalFetch = setInterval(() => fetchFixtures(true), 25000);
-    const intervalNow = setInterval(() => setNow(new Date()), 30000);
-    return () => {
-      clearInterval(intervalFetch);
-      clearInterval(intervalNow);
-    };
+    const interval = setInterval(() => fetchFixtures(), 15000);
+    return () => clearInterval(interval);
   }, []);
 
   function renderItem({ item }) {
-    const fixtureDateTime = new Date(`${item.event_date}T${item.event_time}:00-03:00`).getTime();
-    const isFinished = item.event_status === 'Finished';
-    const isLive = item.event_live === '1';
-    const isNotStarted = item.event_status === 'Not Started';
+    const status = item.event_status;
+    const isFinished = status.toLowerCase() === 'finished';
+    const isLive = item.event_live === '1' && !isFinished;
+    const isNotStarted = status === 'Not Started';
 
-    let score = 'x';
-    if ((isLive || isFinished) && item.event_final_result) {
-      const [homeScore, awayScore] = item.event_final_result.split(' - ');
-      score = `${homeScore} x ${awayScore}`;
-    } else if (isLive) {
-      score = '– x –';
-    }
+    const score =
+      (isLive || isFinished) && item.event_final_result
+        ? item.event_final_result.replace(' - ', ' x ')
+        : 'x';
 
-    let status = '';
+    let displayStatus = '';
     if (isNotStarted) {
-      status = new Date(fixtureDateTime).toLocaleTimeString('pt-BR', {
+      displayStatus = new Date(`${item.event_date}T${item.event_time}:00-03:00`).toLocaleTimeString('pt-BR', {
         hour: '2-digit',
         minute: '2-digit',
       });
     } else if (isLive) {
-      let minuto = item.event_minute;
-      if (minuto === undefined || minuto === null) {
-        minuto = Math.floor((Date.now() - fixtureDateTime) / 60000);
-        minuto = minuto > 0 ? minuto : 0;
-      }
-      status = `${minuto}’`;
+      displayStatus = 'Ao vivo';
+    } else if (status.toLowerCase().includes('half')) {
+      displayStatus = 'Intervalo';
     } else if (isFinished) {
-      status = 'Finalizado';
+      displayStatus = 'Finalizado';
     } else {
-      status = item.event_status;
+      displayStatus = status;
+    }
+
+    // Monta a lista de eventos: gols e cartões
+    const eventos = [];
+
+    // Gols (todos)
+    if (item.goalscorer && Array.isArray(item.goalscorer)) {
+      item.goalscorer.forEach((g) => {
+        const time = g.time || '';
+        // Tentando puxar nome do jogador corretamente
+        const player =
+          g.home_scorer?.trim() ||
+          g.away_scorer?.trim() ||
+          g.player?.trim() || // tentativa extra
+          'Gol';
+
+        eventos.push(`${time}’ ⚽ ${player}`);
+      });
+    }
+
+    // Cartões
+    if (item.cards && Array.isArray(item.cards)) {
+      item.cards.forEach((c) => {
+        const abbr = c.home_fault ? 'CASA' : 'VIS';
+        const player = (c.home_fault || c.away_fault || '').trim();
+        const cardIcon = c.card === 'yellow card' ? '🟨' : '🟥';
+        eventos.push(`${c.time}’ ${cardIcon} [${abbr}] ${player}`);
+      });
     }
 
     return (
       <View style={styles.card}>
-        <View style={styles.teamsRow}>
+        <View style={styles.row}>
           <View style={styles.team}>
             {item.home_team_logo && <Image source={{ uri: item.home_team_logo }} style={styles.logo} />}
             <Text style={styles.teamName}>{item.event_home_team}</Text>
           </View>
-
           <View style={styles.scoreBox}>
             <Text style={styles.scoreText}>{score}</Text>
-            <Text style={styles.statusText}>{status}</Text>
+            <Text style={styles.statusText}>{displayStatus}</Text>
           </View>
-
           <View style={styles.team}>
             {item.away_team_logo && <Image source={{ uri: item.away_team_logo }} style={styles.logo} />}
             <Text style={styles.teamName}>{item.event_away_team}</Text>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.button} activeOpacity={0.7} onPress={() => {}}>
-          <Text style={styles.buttonText}>Ver Detalhes</Text>
+        {eventos.length > 0 && (
+          <View style={styles.events}>
+            {eventos.map((e, i) => (
+              <Text key={i} style={styles.eventText}>• {e}</Text>
+            ))}
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.btn}>
+          <Text style={styles.btnText}>Ver Detalhes</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.safeArea}>
-      {/* HEADER */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
+    <View style={styles.container}>
+      <View style={styles.top}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
           <Ionicons name="arrow-back" size={28} color="#fff" />
         </TouchableOpacity>
-
-        {/* Troque essa imagem pelo logo da Play Scout */}
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
-
-        <View style={{ width: 28 }} /> {/* Placeholder para balancear o espaço */}
+        <Text style={styles.title}>Jogos de Hoje</Text>
+        <View style={{ width: 28 }} />
       </View>
-
-      <Text style={styles.title}>Jogos de Hoje ({getTodayDate()})</Text>
 
       {loading ? (
         <ActivityIndicator size="large" color="#fff" />
       ) : fixtures.length === 0 ? (
-        <Text style={styles.noGamesText}>Nenhum jogo disponível hoje.</Text>
+        <Text style={styles.noGames}>Nenhum jogo disponível hoje.</Text>
       ) : (
         <FlatList
           data={fixtures}
           keyExtractor={(item) => item.event_key}
           renderItem={renderItem}
-          extraData={now}
           contentContainerStyle={{ paddingBottom: 20 }}
         />
       )}
@@ -193,92 +178,21 @@ export default function Calendario({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#000',
-    paddingTop: 40,
-    paddingHorizontal: 10,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 50,
-    marginBottom: 10,
-  },
-  backButton: {
-    paddingRight: 10,
-  },
-  logo: {
-    width: 50,
-    height: 50,
-    resizeMode: 'contain',
-    position: 'absolute',
-    left: '50%',
-    marginLeft: -25,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  noGamesText: {
-    color: '#fff',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  card: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    marginBottom: 10,
-  },
-  teamsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  team: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  logoTeam: {
-    width: 40,
-    height: 40,
-    marginBottom: 5,
-  },
-  teamName: {
-    color: '#fff',
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  scoreBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  scoreText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  statusText: {
-    color: '#ccc',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  button: {
-    backgroundColor: '#007bff',
-    marginTop: 12,
-    paddingVertical: 8,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
+  container: { flex: 1, backgroundColor: '#000', paddingTop: 40, paddingHorizontal: 10 },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  back: { padding: 10 },
+  title: { color: '#fff', fontSize: 22, fontWeight: 'bold', textAlign: 'center' },
+  noGames: { color: '#fff', textAlign: 'center', marginTop: 20 },
+  card: { backgroundColor: '#1a1a1a', borderRadius: 10, padding: 12, marginBottom: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  team: { flex: 1, alignItems: 'center' },
+  logo: { width: 40, height: 40, marginBottom: 5 },
+  teamName: { color: '#fff', fontSize: 13, textAlign: 'center' },
+  scoreBox: { flex: 1, alignItems: 'center' },
+  scoreText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  statusText: { color: '#ccc', fontSize: 12, marginTop: 2 },
+  events: { marginTop: 6 },
+  eventText: { color: '#fff', fontSize: 12, marginBottom: 2 },
+  btn: { backgroundColor: '#007bff', marginTop: 10, padding: 8, borderRadius: 5, alignItems: 'center' },
+  btnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 });

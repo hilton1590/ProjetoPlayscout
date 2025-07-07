@@ -1,39 +1,20 @@
 {
   "users": [
+   
     {
       "id": "82e3",
-      "username": "amumu",
-      "email": "ruanpipo@gmail.com",
-      "password": "aa",
+      "username": "teste",
+      "email": "a",
+      "password": "a",
       "token": "mp4rhle7el"
     },
     {
-      "id": "7e78",
-      "username": "ruan",
-      "email": "ruanpipu@gmai.co",
-      "password": "a",
-      "token": "imsspm02ti"
-    },
-    {
-      "id": "54a7",
-      "username": "erasmo",
-      "email": "eramos@gmaul.com",
-      "password": "a",
-      "token": "l9kqvuw697"
-    },
-    {
-      "id": "a9d4",
-      "username": "Bagmam",
-      "email": "ruan12@hotmail.com",
-      "password": "a",
-      "token": "7awuvivmr8m"
-    },
-    {
-        "id": "82e3",
-        "username": "teste",
-        "email": "a",
-        "password": "a",
-        "token": "mp4rhle7el"
-      }
+      "id": "4b18",
+      "username": "a",
+      "email": "ryan@gmail.com",
+      "password": "123",
+      "token": "n0o70456bof",
+      "favorito": ""
+    }
   ]
 }

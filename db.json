@@ -1,70 +1,39 @@
 {
   "users": [
     {
-      "id": "1",
-      "email": "user1@example.com",
-      "password": "password123",
-      "token": "abcd1234"
+      "id": "82e3",
+      "username": "amumu",
+      "email": "ruanpipo@gmail.com",
+      "password": "aa",
+      "token": "mp4rhle7el"
     },
     {
-      "id": "2",
-      "email": "user2@example.com",
-      "password": "password456",
-      "token": "efgh5678"
-    },
-    {
-      "id": "ba1a",
-      "email": "a",
+      "id": "7e78",
+      "username": "ruan",
+      "email": "ruanpipu@gmai.co",
       "password": "a",
-      "token": "t9bdjpvzd1l"
+      "token": "imsspm02ti"
     },
     {
-      "id": "761b",
-      "email": "b",
-      "password": "b",
-      "token": "s00xt9hena"
-    },
-    {
-      "id": "d91c",
-      "email": "a",
+      "id": "54a7",
+      "username": "erasmo",
+      "email": "eramos@gmaul.com",
       "password": "a",
-      "token": "2c1566rb9ro"
+      "token": "l9kqvuw697"
     },
     {
-      "id": "d38a",
-      "email": "c",
-      "password": "c",
-      "token": "491981hheny"
-    },
-    {
-      "id": "0067",
-      "email": "b",
-      "password": "b",
-      "token": "jgoa2ezimx"
-    },
-    {
-      "id": "079d",
-      "email": "6",
-      "password": "6",
-      "token": "b61qloufei"
-    },
-    {
-      "id": "af3e",
-      "email": "b",
-      "password": "b",
-      "token": "6sdp43jxl7w"
-    },
-    {
-      "id": "5476",
-      "email": "ab",
+      "id": "a9d4",
+      "username": "Bagmam",
+      "email": "ruan12@hotmail.com",
       "password": "a",
-      "token": "r3r3xwjwld"
+      "token": "7awuvivmr8m"
     },
     {
-      "id": "53cd",
-      "email": "njr1466@gmail.com",
-      "password": "123456",
-      "token": "00j48j8mr3jw"
-    }
+        "id": "82e3",
+        "username": "teste",
+        "email": "a",
+        "password": "a",
+        "token": "mp4rhle7el"
+      }
   ]
 }

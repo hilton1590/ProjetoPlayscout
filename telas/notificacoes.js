@@ -1,19 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  Image,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-  Keyboard,
-  SafeAreaView,
-  ScrollView,
+  View, Text, TextInput, TouchableOpacity, FlatList, Image,
+  StyleSheet, ActivityIndicator, Alert, Keyboard, SafeAreaView, ScrollView,
 } from 'react-native';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 const API_KEY = 'cedb9ef9bb637242f806f100eeee35fc';
 const BASE_URL = 'https://v3.football.api-sports.io';
@@ -24,7 +16,25 @@ export default function SeuTime({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [favorites, setFavorites] = useState({});
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const [user, setUser] = useState(null);
   const searchInputRef = useRef(null);
+
+  useEffect(() => {
+    // Recupera usuário logado do AsyncStorage para carregar favoritos
+    async function carregarUser() {
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const userObj = JSON.parse(userData);
+        setUser(userObj);
+
+        // Carrega favorito do usuário e atualiza estado
+        if (userObj.favorito) {
+          setFavorites({ [userObj.favorito]: true });
+        }
+      }
+    }
+    carregarUser();
+  }, []);
 
   async function buscarTimesPorNome(nome) {
     if (!nome.trim()) {
@@ -107,16 +117,44 @@ export default function SeuTime({ navigation }) {
     }
   }
 
-  function toggleFavorite(id) {
+  async function toggleFavorite(id) {
+    if (!user) {
+      Alert.alert('Erro', 'Você precisa estar logado para favoritar um time.');
+      return;
+    }
+
+    const novoEstado = !favorites[id];
+
+    // Atualiza estado local
     setFavorites((prev) => {
-      const updated = { ...prev };
-      if (updated[id]) {
-        delete updated[id];
-      } else {
-        updated[id] = true;
+      if (novoEstado) {
+        return { [id]: true }; // só 1 favorito por vez
       }
-      return updated;
+      return {};
     });
+
+    try {
+      // Atualiza favorito no servidor (db.json)
+      const res = await axios.get(`http://localhost:3000/users?email=${user.email}`);
+      const userData = res.data[0];
+      if (!userData) {
+        Alert.alert('Erro', 'Usuário não encontrado no servidor');
+        return;
+      }
+
+      await axios.patch(`http://localhost:3000/users/${userData.id}`, {
+        favorito: novoEstado ? id.toString() : '',
+      });
+
+      // Atualiza AsyncStorage
+      const novoUserData = { ...user, favorito: novoEstado ? id.toString() : '' };
+      setUser(novoUserData);
+      await AsyncStorage.setItem('userData', JSON.stringify(novoUserData));
+
+      Alert.alert('Sucesso', novoEstado ? 'Time favoritado!' : 'Favorito removido!');
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível atualizar o favorito.');
+    }
   }
 
   function renderTeamItem({ item }) {
@@ -140,7 +178,6 @@ export default function SeuTime({ navigation }) {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
 
-        {/* HEADER COM SETA VOLTAR, LOGO CENTRALIZADA E ÍCONE DE NOTIFICAÇÃO */}
         <View style={styles.topBar}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -255,29 +292,22 @@ export default function SeuTime({ navigation }) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#000' },
   container: { flex: 1, padding: 15, paddingBottom: 80 },
-
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 15,
-    // Altura mínima para caber o ícone e a logo
     minHeight: 50,
   },
-  backButton: {
-    paddingRight: 10,
-    // para garantir a seta não grudar na borda esquerda
-  },
-
+  backButton: { paddingRight: 10 },
   logo: {
     width: 50,
     height: 50,
     resizeMode: 'contain',
     position: 'absolute',
     left: '50%',
-    marginLeft: -25, // metade da largura pra centralizar exata
+    marginLeft: -25,
   },
-
   title: {
     color: '#fff',
     fontSize: 22,

@@ -4,6 +4,7 @@ import {
   Image, ScrollView, Alert,
 } from 'react-native';
 import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Cadastro({ navigation }) {
   const [username, setUsername] = useState('');
@@ -11,7 +12,6 @@ export default function Cadastro({ navigation }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Valida email com domínios comuns
   const validarEmailComDominios = (email) => {
     const regex = /^[^\s@]+@(gmail\.com|hotmail\.com|yahoo\.com|outlook\.com|live\.com)$/;
     return regex.test(email);
@@ -43,15 +43,21 @@ export default function Cadastro({ navigation }) {
         return;
       }
 
-      await axios.post('http://localhost:3000/users', {
+      const novoUsuario = {
         username,
         email,
         password,
         token: Math.random().toString(36).substring(2),
-      });
+        favorito: '',
+      };
 
-      Alert.alert('Sucesso', 'Cadastro realizado!');
-      navigation.navigate('Login');
+      const response = await axios.post('http://localhost:3000/users', novoUsuario);
+
+      // Salva sessão no AsyncStorage
+      await AsyncStorage.setItem('userData', JSON.stringify(response.data));
+
+      Alert.alert('Sucesso', 'Cadastro realizado! Você já está logado.');
+      navigation.navigate('MenuPrincipal');
     } catch (error) {
       Alert.alert('Erro', 'Erro ao conectar com o servidor');
     }
@@ -109,10 +115,7 @@ export default function Cadastro({ navigation }) {
 
       <Text style={styles.footerText}>
         já tem conta?{' '}
-        <Text
-          style={styles.linkText}
-          onPress={() => navigation.navigate('Login')}
-        >
+        <Text style={styles.linkText} onPress={() => navigation.navigate('Login')}>
           entrar
         </Text>
       </Text>

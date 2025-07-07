@@ -3,7 +3,8 @@ import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
   Image, StyleSheet, Alert,
 } from 'react-native';
-import axios from 'axios'; // ← IMPORTAÇÃO DO AXIOS
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
@@ -11,12 +12,13 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = async () => {
     try {
-      const response = await axios.get('http://localhost:3000/users'); // ← USO DO AXIOS
+      const response = await axios.get('http://localhost:3000/users');
       const users = response.data;
 
       const user = users.find((u) => u.email === email && u.password === senha);
 
       if (user) {
+        await AsyncStorage.setItem('userData', JSON.stringify(user));
         Alert.alert('Sucesso', 'Login efetuado!');
         navigation.navigate('MenuPrincipal');
       } else {

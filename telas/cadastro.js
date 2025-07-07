@@ -6,13 +6,25 @@ import {
 import axios from 'axios';
 
 export default function Cadastro({ navigation }) {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Valida email com domínios comuns
+  const validarEmailComDominios = (email) => {
+    const regex = /^[^\s@]+@(gmail\.com|hotmail\.com|yahoo\.com|outlook\.com|live\.com)$/;
+    return regex.test(email);
+  };
+
   const handleCadastro = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!username || !email || !password || !confirmPassword) {
       Alert.alert('Erro', 'Preencha todos os campos!');
+      return;
+    }
+
+    if (!validarEmailComDominios(email)) {
+      Alert.alert('Erro', 'Use um email válido de Gmail, Hotmail, Yahoo, Outlook ou Live!');
       return;
     }
 
@@ -32,6 +44,7 @@ export default function Cadastro({ navigation }) {
       }
 
       await axios.post('http://localhost:3000/users', {
+        username,
         email,
         password,
         token: Math.random().toString(36).substring(2),
@@ -50,11 +63,22 @@ export default function Cadastro({ navigation }) {
 
       <Text style={styles.title}>cadastro</Text>
 
+      <Text style={styles.label}>nome de usuário</Text>
+      <TextInput
+        style={styles.input}
+        placeholder=""
+        placeholderTextColor="#999"
+        value={username}
+        onChangeText={setUsername}
+      />
+
       <Text style={styles.label}>e-mail</Text>
       <TextInput
         style={styles.input}
         placeholder=""
         placeholderTextColor="#999"
+        keyboardType="email-address"
+        autoCapitalize="none"
         value={email}
         onChangeText={setEmail}
       />
@@ -83,7 +107,15 @@ export default function Cadastro({ navigation }) {
         <Text style={styles.buttonText}>cadastrar</Text>
       </TouchableOpacity>
 
-      <Text style={styles.footerText}>já tem conta? <Text style={styles.linkText} onPress={() => navigation.navigate('Login')}>entrar</Text></Text>
+      <Text style={styles.footerText}>
+        já tem conta?{' '}
+        <Text
+          style={styles.linkText}
+          onPress={() => navigation.navigate('Login')}
+        >
+          entrar
+        </Text>
+      </Text>
     </ScrollView>
   );
 }

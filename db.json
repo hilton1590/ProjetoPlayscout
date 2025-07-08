@@ -1,12 +1,12 @@
 {
   "users": [
-   
     {
       "id": "82e3",
       "username": "teste",
       "email": "a",
       "password": "a",
-      "token": "mp4rhle7el"
+      "token": "mp4rhle7el",
+      "favorito": "542"
     },
     {
       "id": "4b18",

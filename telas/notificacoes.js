@@ -7,8 +7,8 @@ import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-const API_KEY = 'cedb9ef9bb637242f806f100eeee35fc';
-const BASE_URL = 'https://v3.football.api-sports.io';
+const API_KEY = '6873e62710ee00a679445c6e0c5656f7570db2473835f2771e516a300c820c45';
+const BASE_URL = 'https://apiv2.allsportsapi.com/football/';  // Atualizado para versão correta da API
 
 export default function SeuTime({ navigation }) {
   const [search, setSearch] = useState('');
@@ -20,14 +20,11 @@ export default function SeuTime({ navigation }) {
   const searchInputRef = useRef(null);
 
   useEffect(() => {
-    // Recupera usuário logado do AsyncStorage para carregar favoritos
     async function carregarUser() {
       const userData = await AsyncStorage.getItem('userData');
       if (userData) {
         const userObj = JSON.parse(userData);
         setUser(userObj);
-
-        // Carrega favorito do usuário e atualiza estado
         if (userObj.favorito) {
           setFavorites({ [userObj.favorito]: true });
         }
@@ -48,26 +45,27 @@ export default function SeuTime({ navigation }) {
     Keyboard.dismiss();
 
     try {
-      const res = await fetch(
-        `${BASE_URL}/teams?search=${encodeURIComponent(nome.trim())}`,
-        {
-          headers: {
-            'x-apisports-key': API_KEY,
-            Accept: 'application/json',
-          },
-        }
-      );
-      const json = await res.json();
+      const res = await axios.get(BASE_URL, {
+        params: {
+          met: 'Teams',
+          teamName: nome.trim(),
+          APIkey: API_KEY,
+        },
+      });
 
-      if (json.response && json.response.length > 0) {
-        const filtrados = json.response.filter(
-          (item) => !/U\d+|W|Sub/i.test(item.team.name)
+      console.log('Resposta da API:', res.data);  // Log da resposta completa
+
+      const json = res.data;
+
+      if (json.result && json.result.length > 0) {
+        const filtrados = json.result.filter(
+          (item) => !/U\d+|W|Sub/i.test(item.team_name)
         );
 
         const nomesUnicos = new Set();
         const final = [];
         filtrados.forEach((item) => {
-          const nomeBase = item.team.name.toLowerCase().trim();
+          const nomeBase = item.team_name.toLowerCase().trim();
           if (!nomesUnicos.has(nomeBase)) {
             nomesUnicos.add(nomeBase);
             final.push(item);
@@ -83,6 +81,7 @@ export default function SeuTime({ navigation }) {
         Alert.alert('Nenhum time encontrado', `Nenhum time com "${nome}" foi encontrado.`);
       }
     } catch (e) {
+      console.log('Erro ao buscar time:', e);  // Log do erro completo
       Alert.alert('Erro', 'Erro ao buscar times: ' + e.message);
     } finally {
       setLoading(false);
@@ -94,21 +93,26 @@ export default function SeuTime({ navigation }) {
     setSelectedTeam(null);
     try {
       const [res1, res2] = await Promise.all([
-        fetch(`${BASE_URL}/leagues?team=${teamObj.team.id}`, {
-          headers: { 'x-apisports-key': API_KEY },
+        axios.get(BASE_URL, {
+          params: {
+            met: 'Teams',
+            teamId: teamObj.team_key,
+            APIkey: API_KEY,
+          },
         }),
-        fetch(`${BASE_URL}/fixtures?team=${teamObj.team.id}&next=5`, {
-          headers: { 'x-apisports-key': API_KEY },
+        axios.get(BASE_URL, {
+          params: {
+            met: 'Fixtures',
+            teamId: teamObj.team_key,
+            APIkey: API_KEY,
+          },
         }),
       ]);
 
-      const leaguesJson = await res1.json();
-      const fixturesJson = await res2.json();
-
       setSelectedTeam({
         ...teamObj,
-        leagues: leaguesJson.response || [],
-        fixtures: fixturesJson.response || [],
+        leagues: res1.data.result || [],
+        fixtures: res2.data.result?.slice(0, 5) || [],
       });
     } catch (err) {
       Alert.alert('Erro', 'Não foi possível carregar os detalhes do time.');
@@ -125,7 +129,6 @@ export default function SeuTime({ navigation }) {
 
     const novoEstado = !favorites[id];
 
-    // Atualiza estado local
     setFavorites((prev) => {
       if (novoEstado) {
         return { [id]: true }; // só 1 favorito por vez
@@ -134,7 +137,6 @@ export default function SeuTime({ navigation }) {
     });
 
     try {
-      // Atualiza favorito no servidor (db.json)
       const res = await axios.get(`http://localhost:3000/users?email=${user.email}`);
       const userData = res.data[0];
       if (!userData) {
@@ -146,7 +148,6 @@ export default function SeuTime({ navigation }) {
         favorito: novoEstado ? id.toString() : '',
       });
 
-      // Atualiza AsyncStorage
       const novoUserData = { ...user, favorito: novoEstado ? id.toString() : '' };
       setUser(novoUserData);
       await AsyncStorage.setItem('userData', JSON.stringify(novoUserData));
@@ -158,11 +159,12 @@ export default function SeuTime({ navigation }) {
   }
 
   function renderTeamItem({ item }) {
-    const id = item.team.id;
+    const id = item.team_key;
+    console.log("Exibindo item:", item);  // Verifique o item renderizado
     return (
       <TouchableOpacity style={styles.teamItem} onPress={() => buscarDetalhesDoTime(item)}>
-        <Image source={{ uri: item.team.logo }} style={styles.teamLogoSmall} />
-        <Text style={styles.teamName}>{item.team.name}</Text>
+        <Image source={{ uri: item.team_logo }} style={styles.teamLogoSmall} />
+        <Text style={styles.teamName}>{item.team_name}</Text>
         <TouchableOpacity onPress={() => toggleFavorite(id)}>
           <Ionicons
             name={favorites[id] ? 'star' : 'star-outline'}
@@ -177,7 +179,6 @@ export default function SeuTime({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-
         <View style={styles.topBar}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -216,7 +217,7 @@ export default function SeuTime({ navigation }) {
         ) : (
           <FlatList
             data={teams}
-            keyExtractor={(item) => item.team.id.toString()}
+            keyExtractor={(item) => item.team_key.toString()}
             renderItem={renderTeamItem}
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ paddingBottom: 120 }}
@@ -226,23 +227,23 @@ export default function SeuTime({ navigation }) {
 
         {selectedTeam && (
           <ScrollView style={styles.selectedTeamContainer}>
-            <Text style={styles.subtitle}>{selectedTeam.team.name}</Text>
-            <Image source={{ uri: selectedTeam.team.logo }} style={styles.escudo} />
-            <Text style={styles.text}>País: {selectedTeam.team.country}</Text>
-            <Text style={styles.text}>Fundado: {selectedTeam.team.founded || 'Desconhecido'}</Text>
+            <Text style={styles.subtitle}>{selectedTeam.team_name}</Text>
+            <Image source={{ uri: selectedTeam.team_logo }} style={styles.escudo} />
+            <Text style={styles.text}>País: {selectedTeam.team_country}</Text>
+            <Text style={styles.text}>Fundado: {selectedTeam.team_founded || 'Desconhecido'}</Text>
             <Text style={styles.text}>Estádio: {selectedTeam.venue?.name || 'Não informado'}</Text>
 
             <TouchableOpacity
-              onPress={() => toggleFavorite(selectedTeam.team.id)}
+              onPress={() => toggleFavorite(selectedTeam.team_key)}
               style={styles.favoriteButton}
             >
               <Ionicons
-                name={favorites[selectedTeam.team.id] ? 'star' : 'star-outline'}
+                name={favorites[selectedTeam.team_key] ? 'star' : 'star-outline'}
                 size={24}
                 color="gold"
               />
               <Text style={{ color: 'gold', marginLeft: 5 }}>
-                {favorites[selectedTeam.team.id] ? 'Desfavoritar' : 'Favoritar'}
+                {favorites[selectedTeam.team_key] ? 'Desfavoritar' : 'Favoritar'}
               </Text>
             </TouchableOpacity>
 
@@ -251,7 +252,7 @@ export default function SeuTime({ navigation }) {
                 <Text style={styles.section}>🏆 Competições:</Text>
                 {selectedTeam.leagues.map((l, index) => (
                   <Text key={index} style={styles.text}>
-                    • {l.league.name} ({l.league.country})
+                    • {l.league_name} ({l.country_name})
                   </Text>
                 ))}
               </>
@@ -262,7 +263,7 @@ export default function SeuTime({ navigation }) {
                 <Text style={styles.section}>📅 Próximos jogos:</Text>
                 {selectedTeam.fixtures.map((f, index) => (
                   <Text key={index} style={styles.text}>
-                    {f.teams.home.name} x {f.teams.away.name} - {f.fixture.date.slice(0, 10)}
+                    {f.homeTeam} x {f.awayTeam} - {f.fixture_date.slice(0, 10)}
                   </Text>
                 ))}
               </>
@@ -339,6 +340,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginBottom: 8,
+    borderWidth: 1,  // Borda vermelha para verificar se o item é renderizado
+    borderColor: 'red',
   },
   teamLogoSmall: {
     width: 40,

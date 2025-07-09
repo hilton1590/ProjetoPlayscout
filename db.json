@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "82e3",
+      "username": "teste",
+      "email": "a",
+      "password": "a",
+      "token": "mp4rhle7el",
+      "favorito": "96"
+    },
+    {
+      "id": "4b18",
+      "username": "a",
+      "email": "ryan@gmail.com",
+      "password": "123",
+      "token": "n0o70456bof",
+      "favorito": ""
+    }
+  ]
+}

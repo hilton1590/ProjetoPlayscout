@@ -211,9 +211,10 @@ export default function Calendario({ navigation }) {
           </View>
         )}
 
-        <TouchableOpacity style={styles.btn}>
+        <TouchableOpacity style={styles.btn} onPress={() => navigation.navigate('DetalhesPartida', { partida: item })}>
           <Text style={styles.btnText}>Ver Detalhes</Text>
         </TouchableOpacity>
+
       </View>
     );
   }

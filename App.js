@@ -10,6 +10,7 @@ import Calendario from './telas/calendario';
 import Torneios from './telas/torneios';
 import Noticia from './telas/Noticia';
 import Favoritos from './telas/favoritos';
+import User from './telas/user';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,7 @@ export default function App() {
         <Stack.Screen name="Notificacoes" component={Notificacoes} />
         <Stack.Screen name="Noticia" component={Noticia} />
         <Stack.Screen name="Favoritos" component={Favoritos} />
+        <Stack.Screen name="User" component={User} />
       </Stack.Navigator>
     </NavigationContainer>
   );

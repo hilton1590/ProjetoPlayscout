@@ -204,7 +204,7 @@ export default function MenuPrincipal({ navigation }) {
         <TouchableOpacity onPress={() => navigation.navigate('Notificacoes')}>
           <Ionicons name="notifications" size={22} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Estatisticas')}>
+        <TouchableOpacity onPress={() => navigation.navigate('User')}>
           <MaterialIcons name="bar-chart" size={22} color="#fff" />
         </TouchableOpacity>
       </View>

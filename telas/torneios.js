@@ -1,231 +1,207 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View, Text, StyleSheet, Image, FlatList, ActivityIndicator, SafeAreaView, TouchableOpacity,
-} from 'react-native';
-import RNPickerSelect from 'react-native-picker-select';
-import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-const App = ({ navigation }) => {
+const App = () => {
+  const [allLeagues, setAllLeagues] = useState([]);
+  const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [standings, setStandings] = useState([]);
   const [selectedLeague, setSelectedLeague] = useState(null);
-  const [times, setTimes] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const ligas = [
-    { label: 'Brasileirão Série A', value: 99 },
-    { label: 'Premier League', value: 152 },
-    { label: 'Ligue 1', value: 168 }, // ← ID real da La Liga
-    { label: 'Serie A', value: 207 },
-    { label: 'Bundesliga', value: 175 },
-  ];
+  useEffect(() => {
+    async function fetchAllLeagues() {
+      try {
+        const res = await axios.get('https://apiv2.allsportsapi.com/football/', {
+          params: {
+            met: 'Leagues',
+            APIkey: 'b3516224c9c1787c7e1e98adf3387889712d6dc8924654e030328a18c85e66aa',
+          },
+        });
 
-  const fetchStandings = async (leagueId) => {
-    setLoading(true);
+        const lista = res.data.result || [];
+        const formatado = lista.map(l => ({
+          label: l.league_name,
+          value: l.league_key,
+          logo: l.league_logo,
+        }));
+
+        setAllLeagues(formatado);
+      } catch (err) {
+        console.error('Erro ao buscar ligas:', err);
+      }
+    }
+
+    fetchAllLeagues();
+  }, []);
+
+  const fetchStandings = async (leagueKey) => {
     try {
+      setLoading(true);
       const res = await axios.get('https://apiv2.allsportsapi.com/football/', {
         params: {
           met: 'Standings',
-          leagueId,
-          APIkey: '62a0e1b85e6d4b3307a04df1d6b8e3993446b8a922d80e34b96e5bf0e060cd69',
+          leagueId: leagueKey,
+          APIkey: 'b3516224c9c1787c7e1e98adf3387889712d6dc8924654e030328a18c85e66aa',
         },
       });
 
       const data = res.data.result?.total || [];
-      const tabela = data.map(item => ({
-        rank: parseInt(item.standing_place),
-        team: { name: item.team_name, logo: item.team_logo },
-        points: parseInt(item.standing_PTS),
-        played: parseInt(item.standing_P),
-        win: parseInt(item.standing_W),
-        draw: parseInt(item.standing_D),
-        lose: parseInt(item.standing_L),
-        goalsFor: parseInt(item.standing_F),
-        goalsAgainst: parseInt(item.standing_A),
-        goalDiff: parseInt(item.standing_F) - parseInt(item.standing_A),
-        form: item.standing_PForm?.split(',') || [],
-      }));
-      setTimes(tabela);
+      setStandings(data);
     } catch (err) {
-      console.error('Erro ao buscar a tabela:', err);
-      setTimes([]);
+      console.error('Erro ao buscar classificação:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
-  useEffect(() => {
-    if (selectedLeague) fetchStandings(selectedLeague);
-  }, [selectedLeague]);
+  const searchLeagues = (text) => {
+    setQuery(text);
+    if (text.length < 2) return setSuggestions([]);
+
+    const lower = text.toLowerCase();
+    const resultados = allLeagues.filter(l =>
+      l.label.toLowerCase().includes(lower)
+    );
+    setSuggestions(resultados);
+  };
+
+  const selectLeague = (liga) => {
+    setSelectedLeague(liga);
+    setQuery(liga.label);
+    setSuggestions([]);
+    fetchStandings(liga.value);
+  };
 
   const renderItem = ({ item }) => (
-    <View style={styles.row}>
-      <Text style={styles.rank}>{item.rank}</Text>
-      <View style={styles.teamContainer}>
-        <Image source={{ uri: item.team.logo }} style={styles.logo} />
-        <Text style={styles.teamName}>{item.team.name}</Text>
-      </View>
-      <Text style={styles.cell}>{item.points}</Text>
-      <Text style={styles.cell}>{item.played}</Text>
-      <Text style={styles.cell}>{item.win}</Text>
-      <Text style={styles.cell}>{item.draw}</Text>
-      <Text style={styles.cell}>{item.lose}</Text>
-      <Text style={styles.cell}>{item.goalsFor}</Text>
-      <Text style={styles.cell}>{item.goalsAgainst}</Text>
-      <Text style={styles.cell}>{item.goalDiff}</Text>
-      <View style={styles.formContainer}>
-        {item.form.map((f, i) => (
-          <View
-            key={i}
-            style={[
-              styles.formDot,
-              {
-                backgroundColor:
-                  f === 'W' ? '#4caf50' : f === 'D' ? '#ffc107' : '#f44336',
-              },
-            ]}
-          />
-        ))}
-      </View>
+    <View style={styles.item}>
+      <Text style={styles.pos}>{item.standing_place}</Text>
+      <Image source={{ uri: item.team_logo }} style={styles.logo} />
+      <Text style={styles.name}>{item.standing_team}</Text>
+      <Text style={styles.points}>{item.standing_PTS} pts</Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      {/* HEADER */}
-      <View style={styles.topBar}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Ionicons name="arrow-back" size={28} color="#fff" />
-        </TouchableOpacity>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Classificação</Text>
 
-        {/* Troque pela logo da Play Scout */}
-        <Image source={require('../assets/logo.png')} style={styles.logoHeader} />
+      <TextInput
+        style={styles.input}
+        placeholder="Buscar liga..."
+        placeholderTextColor="#ccc"
+        value={query}
+        onChangeText={searchLeagues}
+      />
 
-        {/* Placeholder para balancear o espaço */}
-        <View style={{ width: 28 }} />
-      </View>
+      {suggestions.length > 0 ? (
+        suggestions.map((l, index) => (
+          <TouchableOpacity key={index} onPress={() => selectLeague(l)} style={styles.suggestionItem}>
+            <Image source={{ uri: l.logo }} style={styles.suggestionLogo} />
+            <Text style={styles.suggestionText}>{l.label}</Text>
+          </TouchableOpacity>
+        ))
+      ) : query.length > 1 ? (
+        <Text style={styles.noResults}>Nenhuma liga encontrada</Text>
+      ) : null}
 
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Classificação</Text>
-        <RNPickerSelect
-          onValueChange={setSelectedLeague}
-          items={ligas}
-          placeholder={{ label: 'Selecione liga...', value: null }}
-          style={pickerStyles}
-          Icon={() => <Ionicons name="chevron-down" size={20} color="#FFF" />}
-        />
-      </View>
+      {selectedLeague && (
+        <Text style={styles.subtitle}>Liga: {selectedLeague.label}</Text>
+      )}
 
       {loading ? (
         <ActivityIndicator size="large" color="#FFF" />
       ) : (
-        <>
-          <View style={styles.tableHeader}>
-            {['#', 'PTS', 'PJ', 'VIT', 'E', 'DER', 'GM', 'GC', 'SG', 'Últ.5'].map((h, i) => (
-              <Text key={i} style={styles.headerCell}>{h}</Text>
-            ))}
-          </View>
-          <FlatList
-            data={times}
-            keyExtractor={item => item.rank.toString()}
-            renderItem={renderItem}
-          />
-        </>
+        <FlatList
+          data={standings}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={renderItem}
+        />
       )}
     </SafeAreaView>
   );
 };
 
-const pickerStyles = {
-  inputIOS: {
-    color: '#FFF',
-    backgroundColor: '#333',
-    padding: 8,
-    borderRadius: 6,
-    marginLeft: 10,
-    width: 150,
-  },
-  inputAndroid: {
-    color: '#FFF',
-    backgroundColor: '#333',
-    padding: 8,
-    borderRadius: 6,
-    marginLeft: 10,
-    width: 150,
-  },
-};
-
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: '#000',
-    paddingTop: 40,
-    paddingHorizontal: 10,
+    backgroundColor: '#121212',
+    padding: 16,
   },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: 50,
-    marginBottom: 10,
-  },
-  backButton: {
-    paddingRight: 10,
-  },
-  logoHeader: {
-    width: 50,
-    height: 50,
-    resizeMode: 'contain',
-    position: 'absolute',
-    left: '50%',
-    marginLeft: -25,
-  },
-
-  headerRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#FFF' },
-
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#222',
-    paddingVertical: 6,
-    paddingHorizontal: 4,
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-  },
-  headerCell: {
-    flex: 1,
+  title: {
+    fontSize: 24,
     color: '#FFF',
     fontWeight: 'bold',
-    fontSize: 12,
-    textAlign: 'center',
+    marginBottom: 12,
   },
-
-  row: {
+  subtitle: {
+    fontSize: 18,
+    color: '#FFF',
+    marginVertical: 8,
+  },
+  input: {
+    backgroundColor: '#1e1e1e',
+    borderRadius: 6,
+    padding: 10,
+    color: '#FFF',
+    marginBottom: 10,
+  },
+  suggestionItem: {
     flexDirection: 'row',
-    backgroundColor: '#FFF',
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-    marginBottom: 2,
     alignItems: 'center',
+    backgroundColor: '#333',
+    padding: 10,
+    borderRadius: 4,
+    marginBottom: 2,
   },
-  rank: { width: 24, fontWeight: 'bold', textAlign: 'center' },
-  teamContainer: { flex: 1, flexDirection: 'row', alignItems: 'center' },
-  logo: { width: 24, height: 24, marginRight: 6 },
-  teamName: { fontSize: 14, flexShrink: 1 },
-  cell: { width: 32, textAlign: 'center', fontSize: 12 },
-
-  formContainer: {
-    width: 80,
+  suggestionLogo: {
+    width: 24,
+    height: 24,
+    marginRight: 10,
+  },
+  suggestionText: {
+    color: '#FFF',
+    fontSize: 14,
+  },
+  noResults: {
+    color: '#aaa',
+    padding: 10,
+    fontStyle: 'italic',
+  },
+  item: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomColor: '#333',
+    borderBottomWidth: 1,
   },
-  formDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  pos: {
+    width: 30,
+    color: '#FFF',
+  },
+  logo: {
+    width: 24,
+    height: 24,
+    marginHorizontal: 8,
+  },
+  name: {
+    flex: 1,
+    color: '#FFF',
+  },
+  points: {
+    color: '#0f0',
+    fontWeight: 'bold',
   },
 });
 

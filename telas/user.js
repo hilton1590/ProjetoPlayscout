@@ -1,7 +1,9 @@
 import {
   AntDesign,
   Feather,
-  FontAwesome5, Ionicons, MaterialIcons,
+  FontAwesome5,
+  Ionicons,
+  MaterialIcons,
 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -20,7 +22,6 @@ import {
   View,
 } from 'react-native';
 
-// Ativa animações no Android
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental &&
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -29,6 +30,7 @@ if (Platform.OS === 'android') {
 export default function UserScreen({ navigation }) {
   const [userData, setUserData] = useState({});
   const [openSection, setOpenSection] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   useEffect(() => {
     async function loadUserData() {
@@ -52,8 +54,6 @@ export default function UserScreen({ navigation }) {
 
   const handleUpdateUser = async () => {
     try {
-      console.log('Atualizando usuário:', userData); // Verificação de ID
-
       const response = await axios.patch(`http://localhost:3000/users/${userData.id}`, {
         username: userData.username,
         email: userData.email,
@@ -86,9 +86,6 @@ export default function UserScreen({ navigation }) {
       <View style={styles.avatarContainer}>
         <Image source={{ uri: 'https://i.pravatar.cc/100' }} style={styles.avatar} />
         <Text style={styles.userName}>{userData.username || 'Carregando...'}</Text>
-        <Text style={styles.favorito}>
-          {userData.favorito ? `Time favorito: ${userData.favorito}` : 'Nenhum time favorito'}
-        </Text>
       </View>
 
       {/* Bloco de opções */}
@@ -122,14 +119,19 @@ export default function UserScreen({ navigation }) {
           </View>
           <View style={styles.inputRow}>
             <Text style={styles.inputLabel}>nova senha</Text>
-            <TextInput
-              style={styles.inputFlex}
-              placeholder="Digite sua nova senha"
-              placeholderTextColor="#888"
-              secureTextEntry
-              value={userData.password}
-              onChangeText={(text) => setUserData({ ...userData, password: text })}
-            />
+            <View style={styles.inputFlexContainer}>
+              <TouchableOpacity onPress={() => setMostrarSenha(!mostrarSenha)}>
+                <Feather name={mostrarSenha ? 'eye-off' : 'eye'} size={20} color="#666" />
+              </TouchableOpacity>
+              <TextInput
+                style={styles.inputField}
+                placeholder="Digite sua nova senha"
+                placeholderTextColor="#888"
+                secureTextEntry={!mostrarSenha}
+                value={userData.password}
+                onChangeText={(text) => setUserData({ ...userData, password: text })}
+              />
+            </View>
           </View>
 
           <TouchableOpacity style={styles.saveButton} onPress={handleUpdateUser}>
@@ -156,21 +158,21 @@ export default function UserScreen({ navigation }) {
           <Text style={styles.subOption}>Sua senha: {userData.password || '••••••'}</Text>
         </Option>
 
-      <Option
-  label="Suporte"
-  icon="help-circle"
-  iconType="Feather"
-  expanded={openSection === 'suporte'}
-  onPress={() => toggleSection('suporte')}
->
-  <TouchableOpacity onPress={() => Linking.openURL('https://rnms14.wixsite.com/my-site-2')}>
-    <Text style={[styles.subOption, { color: 'blue', textDecorationLine: 'underline' }]}>
-      Quem somos
-    </Text>
-  </TouchableOpacity>
-  <Text style={styles.subOption}>Contato: playscout@gmail.com</Text>
-  <Text style={styles.subOption}>Política</Text>
-</Option>
+        <Option
+          label="Suporte"
+          icon="help-circle"
+          iconType="Feather"
+          expanded={openSection === 'suporte'}
+          onPress={() => toggleSection('suporte')}
+        >
+          <TouchableOpacity onPress={() => Linking.openURL('https://rnms14.wixsite.com/my-site-2')}>
+            <Text style={[styles.subOption, { color: 'blue', textDecorationLine: 'underline' }]}>
+              Quem somos
+            </Text>
+          </TouchableOpacity>
+          <Text style={styles.subOption}>Contato: playscout@gmail.com</Text>
+          <Text style={styles.subOption}>Política</Text>
+        </Option>
       </View>
 
       {/* Rodapé */}
@@ -210,7 +212,6 @@ function Option({ icon, iconType, label, expanded, onPress, children }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000', paddingTop: 40, alignItems: 'center' },
-
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -226,12 +227,9 @@ const styles = StyleSheet.create({
     tintColor: '#fff',
     backgroundColor: '#444',
   },
-
   avatarContainer: { alignItems: 'center', marginBottom: 10 },
   avatar: { width: 80, height: 80, borderRadius: 40 },
   userName: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 5 },
-  favorito: { color: '#ccc', fontSize: 16, marginTop: 4 },
-
   card: {
     width: '90%',
     backgroundColor: '#fff',
@@ -239,7 +237,6 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 20,
   },
-
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -264,13 +261,11 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 5,
   },
-
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
   },
-
   inputLabel: {
     width: 80,
     fontSize: 14,
@@ -278,7 +273,6 @@ const styles = StyleSheet.create({
     textTransform: 'lowercase',
     marginRight: 10,
   },
-
   inputFlex: {
     flex: 1,
     backgroundColor: '#eee',
@@ -287,7 +281,21 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     color: '#000',
   },
-
+  inputFlexContainer: {
+    flex: 1,
+    backgroundColor: '#eee',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingRight: 10,
+    paddingLeft: 8,
+    flexDirection: 'row', // olho à esquerda
+    alignItems: 'center',
+  },
+  inputField: {
+    flex: 1,
+    color: '#000',
+    paddingLeft: 10, // espaço entre o olho e o texto
+  },
   saveButton: {
     backgroundColor: '#000',
     paddingVertical: 10,
@@ -299,7 +307,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-
   navbar: {
     flexDirection: 'row',
     justifyContent: 'space-around',

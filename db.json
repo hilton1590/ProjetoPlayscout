@@ -2,11 +2,20 @@
   "users": [
     {
       "id": "82e3",
-      "username": "testee",
+      "username": "teste",
       "email": "a",
       "password": "a",
       "token": "mp4rhle7el",
-      "favorito": "566"
+      "favorito": [
+        "76",
+        "96",
+        "542",
+        "1985"
+      ],
+      "favoritos": [
+        96,
+        566
+      ]
     },
     {
       "id": "4b18",

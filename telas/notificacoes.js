@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const API_KEY = '6873e62710ee00a679445c6e0c5656f7570db2473835f2771e516a300c820c45';
-const BASE_URL = 'https://apiv2.allsportsapi.com/football/';  // Atualizado para versão correta da API
+const BASE_URL = 'https://apiv2.allsportsapi.com/football/';
 
 export default function SeuTime({ navigation }) {
   const [search, setSearch] = useState('');
@@ -25,8 +25,17 @@ export default function SeuTime({ navigation }) {
       if (userData) {
         const userObj = JSON.parse(userData);
         setUser(userObj);
+
         if (userObj.favorito) {
-          setFavorites({ [userObj.favorito]: true });
+          const favArray = Array.isArray(userObj.favorito)
+            ? userObj.favorito
+            : [userObj.favorito];
+
+          const favObj = {};
+          favArray.forEach((id) => {
+            favObj[id] = true;
+          });
+          setFavorites(favObj);
         }
       }
     }
@@ -52,8 +61,6 @@ export default function SeuTime({ navigation }) {
           APIkey: API_KEY,
         },
       });
-
-      console.log('Resposta da API:', res.data);  // Log da resposta completa
 
       const json = res.data;
 
@@ -81,7 +88,7 @@ export default function SeuTime({ navigation }) {
         Alert.alert('Nenhum time encontrado', `Nenhum time com "${nome}" foi encontrado.`);
       }
     } catch (e) {
-      console.log('Erro ao buscar time:', e);  // Log do erro completo
+      console.log('Erro ao buscar time:', e);
       Alert.alert('Erro', 'Erro ao buscar times: ' + e.message);
     } finally {
       setLoading(false);
@@ -127,40 +134,45 @@ export default function SeuTime({ navigation }) {
       return;
     }
 
-    const novoEstado = !favorites[id];
+    const isFavorito = favorites[id];
+    const novosFavoritos = { ...favorites };
 
-    setFavorites((prev) => {
-      if (novoEstado) {
-        return { [id]: true }; // só 1 favorito por vez
-      }
-      return {};
-    });
+    if (isFavorito) {
+      delete novosFavoritos[id]; // remove favorito
+    } else {
+      novosFavoritos[id] = true; // adiciona favorito
+    }
+
+    setFavorites(novosFavoritos);
 
     try {
       const res = await axios.get(`http://localhost:3000/users?email=${user.email}`);
       const userData = res.data[0];
+
       if (!userData) {
         Alert.alert('Erro', 'Usuário não encontrado no servidor');
         return;
       }
 
+      const favoritosArray = Object.keys(novosFavoritos);
+
       await axios.patch(`http://localhost:3000/users/${userData.id}`, {
-        favorito: novoEstado ? id.toString() : '',
+        favorito: favoritosArray,
       });
 
-      const novoUserData = { ...user, favorito: novoEstado ? id.toString() : '' };
+      const novoUserData = { ...user, favorito: favoritosArray };
       setUser(novoUserData);
       await AsyncStorage.setItem('userData', JSON.stringify(novoUserData));
 
-      Alert.alert('Sucesso', novoEstado ? 'Time favoritado!' : 'Favorito removido!');
+      Alert.alert('Sucesso', isFavorito ? 'Removido dos favoritos!' : 'Time favoritado!');
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível atualizar o favorito.');
+      console.log('Erro ao atualizar favoritos:', error);
+      Alert.alert('Erro', 'Erro ao atualizar os favoritos.');
     }
   }
 
   function renderTeamItem({ item }) {
     const id = item.team_key;
-    console.log("Exibindo item:", item);  // Verifique o item renderizado
     return (
       <TouchableOpacity style={styles.teamItem} onPress={() => buscarDetalhesDoTime(item)}>
         <Image source={{ uri: item.team_logo }} style={styles.teamLogoSmall} />
@@ -258,16 +270,17 @@ export default function SeuTime({ navigation }) {
               </>
             )}
 
-            {selectedTeam.fixtures?.length > 0 && (
-              <>
-                <Text style={styles.section}>📅 Próximos jogos:</Text>
-                {selectedTeam.fixtures.map((f, index) => (
-                  <Text key={index} style={styles.text}>
-                    {f.homeTeam} x {f.awayTeam} - {f.fixture_date.slice(0, 10)}
-                  </Text>
-                ))}
-              </>
-            )}
+          {selectedTeam.fixtures?.length > 0 && (
+          <>
+            <Text style={styles.section}>📅 Próximos jogos:</Text>
+            {selectedTeam.fixtures.map((f, index) => (
+              <Text key={index} style={styles.text}>
+                {f.homeTeam} x {f.awayTeam} - {f.fixture_date ? f.fixture_date.slice(0, 10) : 'Data não disponível'}
+              </Text>
+            ))}
+          </>
+        )}
+
           </ScrollView>
         )}
       </View>
@@ -349,7 +362,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginBottom: 8,
-    borderWidth: 1,  // Borda vermelha para verificar se o item é renderizado
+    borderWidth: 1,
     borderColor: 'red',
   },
   teamLogoSmall: {
@@ -405,19 +418,20 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-  },fullButton: {
-  backgroundColor: '#444',
-  paddingVertical: 15,
-  borderRadius: 10,
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginTop: 10,
-  marginBottom: 50,
-  zIndex: 2,
-},
-fullButtonText: {
-  color: '#fff',
-  fontSize: 16,
-  fontWeight: 'bold',
-},
+  },
+  fullButton: {
+    backgroundColor: '#444',
+    paddingVertical: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 50,
+    zIndex: 2,
+  },
+  fullButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

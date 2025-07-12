@@ -18,75 +18,97 @@ const API_KEY = '6873e62710ee00a679445c6e0c5656f7570db2473835f2771e516a300c820c4
 const BASE_URL = 'https://apiv2.allsportsapi.com/football/';
 
 export default function TimesFavoritos({ navigation }) {
-  const [favorito, setFavorito] = useState(null);
-  const [time, setTime] = useState(null);
+  const [favoritos, setFavoritos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showPlayers, setShowPlayers] = useState(false); // controla menu jogadores
-  const [showCoaches, setShowCoaches] = useState(false); // controla menu técnicos (opcional)
+  const [showPlayers, setShowPlayers] = useState({}); // chave por time
+  const [showCoaches, setShowCoaches] = useState({}); // chave por time
 
-  async function carregarTimeFavorito() {
+  async function carregarTimesFavoritos() {
     try {
       setLoading(true);
       const userData = await AsyncStorage.getItem('userData');
-      if (userData) {
-        const user = JSON.parse(userData);
-        const teamId = user.favorito;
-        setFavorito(teamId);
-
-        if (teamId) {
-          const res = await axios.get(BASE_URL, {
-            params: {
-              met: 'Teams',
-              teamId: teamId,
-              APIkey: API_KEY,
-            },
-          });
-
-          console.log('DADOS DO TIME:', res.data.result[0]);
-
-          if (res.data.result && res.data.result.length > 0) {
-            setTime(res.data.result[0]);
-          } else {
-            setTime(null);
-          }
-        } else {
-          setTime(null);
-        }
+      if (!userData) {
+        setFavoritos([]);
+        setLoading(false);
+        return;
       }
+
+      const user = JSON.parse(userData);
+      const favoritosArray = Array.isArray(user.favorito)
+        ? user.favorito
+        : user.favorito ? [user.favorito] : [];
+
+      if (favoritosArray.length === 0) {
+        setFavoritos([]);
+        setLoading(false);
+        return;
+      }
+
+      // Buscar dados completos de todos os favoritos em paralelo
+      const requests = favoritosArray.map((teamId) =>
+        axios.get(BASE_URL, {
+          params: {
+            met: 'Teams',
+            teamId: teamId,
+            APIkey: API_KEY,
+          },
+        })
+      );
+
+      const responses = await Promise.all(requests);
+
+      const times = responses
+        .map((res) => (res.data.result && res.data.result.length > 0 ? res.data.result[0] : null))
+        .filter(Boolean);
+
+      setFavoritos(times);
     } catch (error) {
-      console.log('Erro ao carregar:', error);
-      Alert.alert('Erro', 'Erro ao carregar time favorito.');
+      console.log('Erro ao carregar favoritos:', error);
+      Alert.alert('Erro', 'Erro ao carregar times favoritos.');
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', carregarTimeFavorito);
+    const unsubscribe = navigation.addListener('focus', carregarTimesFavoritos);
     return unsubscribe;
   }, [navigation]);
 
-  async function removerFavorito() {
+  async function removerFavorito(teamId) {
     try {
       const userData = await AsyncStorage.getItem('userData');
       if (!userData) return;
 
       const user = JSON.parse(userData);
 
+      let favoritosArray = Array.isArray(user.favorito)
+        ? user.favorito
+        : user.favorito ? [user.favorito] : [];
+
+      favoritosArray = favoritosArray.filter((id) => id !== teamId);
+
       await axios.patch(`http://localhost:3000/users/${user.id}`, {
-        favorito: '',
+        favorito: favoritosArray,
       });
 
-      const novoUser = { ...user, favorito: '' };
+      const novoUser = { ...user, favorito: favoritosArray };
       await AsyncStorage.setItem('userData', JSON.stringify(novoUser));
 
-      setFavorito(null);
-      setTime(null);
+      setFavoritos((prev) => prev.filter((t) => t.team_key !== teamId));
       Alert.alert('Sucesso', 'Time removido dos favoritos!');
     } catch (err) {
       console.log(err);
       Alert.alert('Erro', 'Não foi possível remover o favorito.');
     }
+  }
+
+  function toggleShowPlayers(teamKey) {
+    setShowPlayers((prev) => ({ ...prev, [teamKey]: !prev[teamKey] }));
+  }
+
+  function toggleShowCoaches(teamKey) {
+    setShowCoaches((prev) => ({ ...prev, [teamKey]: !prev[teamKey] }));
   }
 
   return (
@@ -101,55 +123,62 @@ export default function TimesFavoritos({ navigation }) {
             <Ionicons name="arrow-back" size={28} color="#fff" />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Favorito</Text>
+          <Text style={styles.headerTitle}>Favoritos</Text>
           <View style={{ width: 28 }} />
         </View>
 
         <ScrollView>
-          <Text style={styles.title}>⭐ Seu Time Favorito</Text>
+          <Text style={styles.title}>⭐ Seus Times Favoritos</Text>
 
           {loading ? (
             <ActivityIndicator size="large" color="#fff" style={{ marginTop: 20 }} />
-          ) : !time ? (
+          ) : favoritos.length === 0 ? (
             <Text style={styles.text}>Nenhum time favoritado ainda.</Text>
           ) : (
-            <View style={styles.card}>
-              <Image source={{ uri: time.team_logo }} style={styles.logo} />
-              <Text style={styles.name}>{time.team_name}</Text>
+            favoritos.map((time) => (
+              <View key={time.team_key} style={styles.card}>
+                <Image source={{ uri: time.team_logo }} style={styles.logo} />
+                <Text style={styles.name}>{time.team_name}</Text>
 
-              {/* Menu jogadores */}
-              <TouchableOpacity
-                style={styles.menuHeader}
-                onPress={() => setShowPlayers(!showPlayers)}
-              >
-                <Text style={styles.section}>👥 Jogadores {showPlayers ? '▲' : '▼'}</Text>
-              </TouchableOpacity>
-              {showPlayers &&
-                time.players?.map((player, index) => (
-                  <Text key={index} style={styles.text}>
-                    {player.player_name} - {player.player_type}
+                <TouchableOpacity
+                  style={styles.menuHeader}
+                  onPress={() => toggleShowPlayers(time.team_key)}
+                >
+                  <Text style={styles.section}>
+                    👥 Jogadores {showPlayers[time.team_key] ? '▲' : '▼'}
                   </Text>
-                ))}
+                </TouchableOpacity>
+                {showPlayers[time.team_key] &&
+                  time.players?.map((player, index) => (
+                    <Text key={index} style={styles.text}>
+                      {player.player_name} - {player.player_type}
+                    </Text>
+                  ))}
 
-              {/* Menu técnicos */}
-              <TouchableOpacity
-                style={styles.menuHeader}
-                onPress={() => setShowCoaches(!showCoaches)}
-              >
-                <Text style={styles.section}>🧠 Técnicos {showCoaches ? '▲' : '▼'}</Text>
-              </TouchableOpacity>
-              {showCoaches &&
-                time.coaches?.map((coach, index) => (
-                  <Text key={index} style={styles.text}>
-                    {coach.coach_name}
+                <TouchableOpacity
+                  style={styles.menuHeader}
+                  onPress={() => toggleShowCoaches(time.team_key)}
+                >
+                  <Text style={styles.section}>
+                    🧠 Técnicos {showCoaches[time.team_key] ? '▲' : '▼'}
                   </Text>
-                ))}
+                </TouchableOpacity>
+                {showCoaches[time.team_key] &&
+                  time.coaches?.map((coach, index) => (
+                    <Text key={index} style={styles.text}>
+                      {coach.coach_name}
+                    </Text>
+                  ))}
 
-              <TouchableOpacity style={styles.btn} onPress={removerFavorito}>
-                <Ionicons name="star" size={24} color="gold" />
-                <Text style={styles.btnText}>Remover dos favoritos</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={styles.btn}
+                  onPress={() => removerFavorito(time.team_key)}
+                >
+                  <Ionicons name="star" size={24} color="gold" />
+                  <Text style={styles.btnText}>Remover dos favoritos</Text>
+                </TouchableOpacity>
+              </View>
+            ))
           )}
         </ScrollView>
       </View>

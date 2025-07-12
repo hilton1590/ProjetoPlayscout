@@ -11,6 +11,7 @@ import Torneios from './telas/torneios';
 import Noticia from './telas/Noticia';
 import Favoritos from './telas/favoritos';
 import User from './telas/user';
+import DetalhesDaPartida from './telas/detalhesDaPartida'; // corrigido aqui
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,7 @@ export default function App() {
         <Stack.Screen name="Noticia" component={Noticia} />
         <Stack.Screen name="Favoritos" component={Favoritos} />
         <Stack.Screen name="User" component={User} />
+        <Stack.Screen name="DetalhesDaPartida" component={DetalhesDaPartida} />
       </Stack.Navigator>
     </NavigationContainer>
   );

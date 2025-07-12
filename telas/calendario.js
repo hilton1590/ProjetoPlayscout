@@ -29,7 +29,6 @@ function translateStatus(statusRaw) {
   if (!statusRaw) return '';
   const s = statusRaw.toLowerCase();
 
-  // Se status for algo como "12" ou "45+2", colocar apóstrofo
   if (/^\d+(\+\d+)?$/.test(s)) {
     return `${statusRaw}'`;
   }
@@ -100,10 +99,9 @@ export default function Calendario({ navigation }) {
     return groups;
   }, {});
 
-  // Filtro pela pesquisa (busca times pelo nome)
   const groupedFilteredFixtures = Object.keys(groupedFixtures).reduce((filtered, league) => {
     const filteredGames = groupedFixtures[league].filter((game) => {
-      if (searchTerm.length < 3) return true; // mostra tudo se menos de 3 letras
+      if (searchTerm.length < 3) return true;
       const term = searchTerm.toLowerCase();
       return (
         game.event_home_team.toLowerCase().includes(term) ||
@@ -163,7 +161,6 @@ export default function Calendario({ navigation }) {
 
     const eventos = [];
 
-    // Eventos de gols - só o tempo com apóstrofo (sem nome do jogador)
     if (item.goalscorer && Array.isArray(item.goalscorer)) {
       item.goalscorer.forEach((g) => {
         const rawTime = g.time?.toString().trim() || '';
@@ -174,7 +171,6 @@ export default function Calendario({ navigation }) {
       });
     }
 
-    // Eventos de cartões - tempo com apóstrofo e nome do jogador que levou cartão
     if (item.cards && Array.isArray(item.cards)) {
       item.cards.forEach((c) => {
         const rawTime = c.time?.toString().trim() || '';
@@ -211,9 +207,13 @@ export default function Calendario({ navigation }) {
           </View>
         )}
 
-        <TouchableOpacity style={styles.btn}>
+        <TouchableOpacity
+          style={styles.btn}
+          onPress={() => navigation.navigate('DetalhesDaPartida', { partida: item, event_key: item.event_key })}
+        >
           <Text style={styles.btnText}>Ver Detalhes</Text>
         </TouchableOpacity>
+
       </View>
     );
   }

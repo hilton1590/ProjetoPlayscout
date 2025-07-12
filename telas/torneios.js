@@ -11,8 +11,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native'; // Navegação
 
 const App = () => {
+  const navigation = useNavigation();
+
   const [allLeagues, setAllLeagues] = useState([]);
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
@@ -95,6 +99,18 @@ const App = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Cabeçalho com seta de voltar e logo */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+        <Image
+          source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/1/10/Soccerball.svg' }} // Substitua pela sua logo
+          style={styles.logoHeader}
+        />
+        <View style={{ width: 24 }} /> {/* Espaço simétrico ao lado direito */}
+      </View>
+
       <Text style={styles.title}>Classificação</Text>
 
       <TextInput
@@ -139,11 +155,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#121212',
     padding: 16,
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  backButton: {
+    padding: 8,
+  },
+  logoHeader: {
+    width: 40,
+    height: 40,
+    resizeMode: 'contain',
+  },
   title: {
     fontSize: 24,
     color: '#FFF',
     fontWeight: 'bold',
     marginBottom: 12,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 18,

@@ -24,6 +24,22 @@
       "password": "123",
       "token": "n0o70456bof",
       "favorito": ""
+    },
+    {
+      "id": "f939",
+      "username": "anderson",
+      "email": "anderson@gmail.com",
+      "password": "123",
+      "token": "lv487lu1sf",
+      "favorito": ""
+    },
+    {
+      "id": "2473",
+      "username": "b",
+      "email": "b@gmail.com",
+      "password": "b",
+      "token": "p5y89i6r51g",
+      "favorito": ""
     }
   ]
 }

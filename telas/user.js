@@ -6,6 +6,8 @@ import {
   MaterialIcons,
 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import {
@@ -29,6 +31,7 @@ if (Platform.OS === 'android') {
 
 export default function UserScreen({ navigation }) {
   const [userData, setUserData] = useState({});
+  const [fotoPerfil, setFotoPerfil] = useState(null);
   const [openSection, setOpenSection] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
@@ -36,9 +39,13 @@ export default function UserScreen({ navigation }) {
     async function loadUserData() {
       try {
         const data = await AsyncStorage.getItem('userData');
+        const foto = await AsyncStorage.getItem('userPhoto');
         if (data) {
           const parsed = JSON.parse(data);
           setUserData(parsed);
+        }
+        if (foto) {
+          setFotoPerfil(foto);
         }
       } catch (e) {
         console.error('Erro ao carregar usuário:', e);
@@ -46,6 +53,42 @@ export default function UserScreen({ navigation }) {
     }
     loadUserData();
   }, []);
+
+  const alterarFotoPerfil = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.6,
+      });
+
+      if (!result.canceled) {
+        const imageUri = result.assets[0].uri;
+
+        // Deleta imagem anterior se for local
+        const antigaFoto = await AsyncStorage.getItem('userPhoto');
+        if (antigaFoto && antigaFoto.startsWith(FileSystem.documentDirectory)) {
+          await FileSystem.deleteAsync(antigaFoto, { idempotent: true });
+        }
+
+        // Copia a nova imagem para o armazenamento local (exceto na Web)
+        let localUri = imageUri;
+        if (Platform.OS !== 'web') {
+          const nomeArquivo = imageUri.split('/').pop();
+          const novoCaminho = FileSystem.documentDirectory + nomeArquivo;
+          await FileSystem.copyAsync({ from: imageUri, to: novoCaminho });
+          localUri = novoCaminho;
+        }
+
+        setFotoPerfil(localUri);
+        await AsyncStorage.setItem('userPhoto', localUri);
+        Alert.alert('Sucesso', 'Foto de perfil atualizada!');
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar foto:', error);
+      Alert.alert('Erro', 'Não foi possível atualizar a imagem.');
+    }
+  };
 
   const toggleSection = (key) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -70,7 +113,6 @@ export default function UserScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Cabeçalho */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <AntDesign name="arrowleft" size={28} color="#fff" />
@@ -82,13 +124,16 @@ export default function UserScreen({ navigation }) {
         />
       </View>
 
-      {/* Avatar + nome */}
       <View style={styles.avatarContainer}>
-        <Image source={{ uri: 'https://i.pravatar.cc/100' }} style={styles.avatar} />
+        <TouchableOpacity onPress={alterarFotoPerfil}>
+          <Image
+            source={fotoPerfil ? { uri: fotoPerfil } : require('../assets/default-avatar.png')}
+            style={styles.avatar}
+          />
+        </TouchableOpacity>
         <Text style={styles.userName}>{userData.username || 'Carregando...'}</Text>
       </View>
 
-      {/* Bloco de opções */}
       <View style={styles.card}>
         <Option
           label="Alterar informações"
@@ -175,7 +220,6 @@ export default function UserScreen({ navigation }) {
         </Option>
       </View>
 
-      {/* Rodapé */}
       <View style={styles.navbar}>
         <FontAwesome5 name="calendar-alt" size={24} color="#fff" />
         <Ionicons name="trophy" size={24} color="#fff" />
@@ -244,7 +288,6 @@ const styles = StyleSheet.create({
   optionIcon: {
     width: 24,
     height: 24,
-    resizeMode: 'contain',
     marginRight: 10,
   },
   optionLabel: {
@@ -288,13 +331,13 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingRight: 10,
     paddingLeft: 8,
-    flexDirection: 'row', // olho à esquerda
+    flexDirection: 'row',
     alignItems: 'center',
   },
   inputField: {
     flex: 1,
     color: '#000',
-    paddingLeft: 10, // espaço entre o olho e o texto
+    paddingLeft: 10,
   },
   saveButton: {
     backgroundColor: '#000',

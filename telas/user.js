@@ -28,16 +28,15 @@ if (Platform.OS === 'android') {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-// Avatares criativos de futebol (não são escudos de times)
 const avataresFutebol = [
-  'https://cdn-icons-png.flaticon.com/512/861/861512.png',       // chuteira
-  'https://cdn-icons-png.flaticon.com/512/1047/1047711.png',     // bola clássica
-  'https://cdn-icons-png.flaticon.com/512/3467/3467583.png',     // camisa
-  'https://cdn-icons-png.flaticon.com/512/564/564395.png',       // árbitro
-  'https://cdn-icons-png.flaticon.com/512/1827/1827515.png',     // troféu
-  'https://cdn-icons-png.flaticon.com/512/3248/3248610.png',     // rede com bola
-  'https://cdn-icons-png.flaticon.com/512/3916/3916959.png',     // mascote jogador
-  'https://cdn-icons-png.flaticon.com/512/8532/8532634.png',     // bandeira lateral
+  'https://img.icons8.com/?size=100&id=84687&format=png&color=000000',      
+  'https://img.icons8.com/?size=100&id=84686&format=png&color=000000',     
+  'https://img.icons8.com/?size=100&id=84688&format=png&color=000000',     
+  'https://img.icons8.com/?size=100&id=84689&format=png&color=000000',       
+  'https://img.icons8.com/?size=100&id=84690&format=png&color=000000',     
+  'https://img.icons8.com/?size=100&id=84691&format=png&color=000000',     
+  'https://img.icons8.com/?size=100&id=84693&format=png&color=000000',     
+  'https://img.icons8.com/?size=100&id=36878&format=png&color=000000',     
 ];
 
 export default function UserScreen({ navigation }) {

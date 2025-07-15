@@ -15,7 +15,8 @@
       "favoritos": [
         96,
         566
-      ]
+      ],
+      "icon": "https://cdn-icons-png.flaticon.com/512/861/861512.png"
     },
     {
       "id": "4b18",
@@ -23,7 +24,8 @@
       "email": "ryan@gmail.com",
       "password": "123",
       "token": "n0o70456bof",
-      "favorito": ""
+      "favorito": "",
+      "icon": "https://cdn-icons-png.flaticon.com/512/1047/1047711.png"
     },
     {
       "id": "f939",
@@ -31,15 +33,27 @@
       "email": "anderson@gmail.com",
       "password": "123",
       "token": "lv487lu1sf",
-      "favorito": ""
+      "favorito": "",
+      "icon": "https://cdn-icons-png.flaticon.com/512/3467/3467583.png"
     },
+    {},
     {
-      "id": "2473",
+      "id": "7872",
       "username": "b",
       "email": "b@gmail.com",
       "password": "b",
-      "token": "p5y89i6r51g",
-      "favorito": ""
+      "token": "6l3pluhi4ph",
+      "favorito": "",
+      "icon": "https://cdn-icons-png.flaticon.com/512/1047/1047711.png"
+    },
+    {
+      "id": "430c",
+      "username": "c",
+      "email": "c@gmail.com",
+      "password": "c",
+      "token": "kyr3bxp90gr",
+      "favorito": "",
+      "icon": "https://cdn-icons-png.flaticon.com/512/1827/1827515.png"
     }
   ]
 }

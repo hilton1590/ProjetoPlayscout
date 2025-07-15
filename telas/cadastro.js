@@ -1,55 +1,16 @@
 import React, { useState } from 'react';
 import {
   StyleSheet, Text, View, TextInput, TouchableOpacity,
-  Image, ScrollView, Alert, Platform
+  Image, ScrollView, Alert
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
 
 export default function Cadastro({ navigation }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [foto, setFoto] = useState(null); // caminho local ou base64
-
-  const selecionarImagem = async () => {
-    console.log('Abrindo seletor de imagem...');
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-      base64: Platform.OS === 'web', // só ativa base64 no navegador
-    });
-
-    if (!result.canceled && result.assets && result.assets.length > 0) {
-      const asset = result.assets[0];
-
-      if (Platform.OS === 'web') {
-        const imagemBase64 = `data:image/jpeg;base64,${asset.base64}`;
-        setFoto(imagemBase64);
-        console.log('Imagem (base64):', imagemBase64);
-      } else {
-        const originalUri = asset.uri;
-        const novoCaminho = FileSystem.documentDirectory + 'fotoUsuario_' + Date.now() + '.jpg';
-
-        try {
-          await FileSystem.copyAsync({ from: originalUri, to: novoCaminho });
-          setFoto(novoCaminho);
-          console.log('Imagem salva em:', novoCaminho);
-        } catch (err) {
-          console.log('Erro ao copiar imagem:', err);
-          Alert.alert('Erro', 'Não foi possível salvar a imagem.');
-        }
-      }
-    } else {
-      console.log('Imagem cancelada ou inválida.');
-    }
-  };
 
   const validarEmailComDominios = (email) => {
     const regex = /^[^\s@]+@(gmail\.com|hotmail\.com|yahoo\.com|outlook\.com|live\.com)$/;
@@ -92,11 +53,7 @@ export default function Cadastro({ navigation }) {
 
       const response = await axios.post('http://localhost:3000/users', novoUsuario);
 
-      // Salva sessão e imagem
       await AsyncStorage.setItem('userData', JSON.stringify(response.data));
-      if (foto) {
-        await AsyncStorage.setItem('userPhoto', foto);
-      }
 
       Alert.alert('Sucesso', 'Cadastro realizado com sucesso!');
       navigation.navigate('MenuPrincipal');
@@ -111,16 +68,6 @@ export default function Cadastro({ navigation }) {
       <Image source={require('../assets/playscout.png')} style={styles.image} />
 
       <Text style={styles.title}>cadastro</Text>
-
-      <TouchableOpacity onPress={selecionarImagem}>
-        {foto ? (
-          <Image source={{ uri: foto }} style={styles.fotoPerfil} />
-        ) : (
-          <View style={styles.fotoPlaceholder}>
-            <Text style={styles.fotoTexto}>Selecionar foto de perfil</Text>
-          </View>
-        )}
-      </TouchableOpacity>
 
       <Text style={styles.label}>nome de usuário</Text>
       <TextInput style={styles.input} value={username} onChangeText={setUsername} />
@@ -167,29 +114,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 30,
-  },
-  fotoPerfil: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 20,
-    borderWidth: 2,
-    borderColor: '#fff',
-  },
-  fotoPlaceholder: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#444',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  fotoTexto: {
-    color: '#ccc',
-    fontSize: 12,
-    textAlign: 'center',
-    paddingHorizontal: 10,
   },
   label: {
     alignSelf: 'flex-start',

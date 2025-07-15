@@ -6,10 +6,7 @@ import {
   MaterialIcons,
 } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
-import * as ImagePicker from 'expo-image-picker';
-import axios from 'axios';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Image,
@@ -22,30 +19,45 @@ import {
   TouchableOpacity,
   UIManager,
   View,
+  ScrollView,
 } from 'react-native';
+import axios from 'axios';
 
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental &&
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// Avatares criativos de futebol (não são escudos de times)
+const avataresFutebol = [
+  'https://cdn-icons-png.flaticon.com/512/861/861512.png',       // chuteira
+  'https://cdn-icons-png.flaticon.com/512/1047/1047711.png',     // bola clássica
+  'https://cdn-icons-png.flaticon.com/512/3467/3467583.png',     // camisa
+  'https://cdn-icons-png.flaticon.com/512/564/564395.png',       // árbitro
+  'https://cdn-icons-png.flaticon.com/512/1827/1827515.png',     // troféu
+  'https://cdn-icons-png.flaticon.com/512/3248/3248610.png',     // rede com bola
+  'https://cdn-icons-png.flaticon.com/512/3916/3916959.png',     // mascote jogador
+  'https://cdn-icons-png.flaticon.com/512/8532/8532634.png',     // bandeira lateral
+];
+
 export default function UserScreen({ navigation }) {
   const [userData, setUserData] = useState({});
   const [fotoPerfil, setFotoPerfil] = useState(null);
   const [openSection, setOpenSection] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
+  const scrollRef = useRef(null);
+  const [scrollX, setScrollX] = useState(0);
 
   useEffect(() => {
     async function loadUserData() {
       try {
         const data = await AsyncStorage.getItem('userData');
-        const foto = await AsyncStorage.getItem('userPhoto');
+        const avatar = await AsyncStorage.getItem('userAvatar');
         if (data) {
-          const parsed = JSON.parse(data);
-          setUserData(parsed);
+          setUserData(JSON.parse(data));
         }
-        if (foto) {
-          setFotoPerfil(foto);
+        if (avatar) {
+          setFotoPerfil(avatar);
         }
       } catch (e) {
         console.error('Erro ao carregar usuário:', e);
@@ -54,45 +66,15 @@ export default function UserScreen({ navigation }) {
     loadUserData();
   }, []);
 
-  const alterarFotoPerfil = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.6,
-      });
-
-      if (!result.canceled) {
-        const imageUri = result.assets[0].uri;
-
-        // Deleta imagem anterior se for local
-        const antigaFoto = await AsyncStorage.getItem('userPhoto');
-        if (antigaFoto && antigaFoto.startsWith(FileSystem.documentDirectory)) {
-          await FileSystem.deleteAsync(antigaFoto, { idempotent: true });
-        }
-
-        // Copia a nova imagem para o armazenamento local (exceto na Web)
-        let localUri = imageUri;
-        if (Platform.OS !== 'web') {
-          const nomeArquivo = imageUri.split('/').pop();
-          const novoCaminho = FileSystem.documentDirectory + nomeArquivo;
-          await FileSystem.copyAsync({ from: imageUri, to: novoCaminho });
-          localUri = novoCaminho;
-        }
-
-        setFotoPerfil(localUri);
-        await AsyncStorage.setItem('userPhoto', localUri);
-        Alert.alert('Sucesso', 'Foto de perfil atualizada!');
-      }
-    } catch (error) {
-      console.error('Erro ao atualizar foto:', error);
-      Alert.alert('Erro', 'Não foi possível atualizar a imagem.');
-    }
-  };
-
   const toggleSection = (key) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setOpenSection(openSection === key ? '' : key);
+  };
+
+  const selecionarIcone = async (url) => {
+    setFotoPerfil(url);
+    await AsyncStorage.setItem('userAvatar', url);
+    Alert.alert('Sucesso', 'Avatar atualizado!');
   };
 
   const handleUpdateUser = async () => {
@@ -101,6 +83,7 @@ export default function UserScreen({ navigation }) {
         username: userData.username,
         email: userData.email,
         password: userData.password,
+        icon: fotoPerfil, // Atualizando o campo icon no backend também
       });
 
       await AsyncStorage.setItem('userData', JSON.stringify(response.data));
@@ -113,6 +96,7 @@ export default function UserScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      {/* Cabeçalho */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <AntDesign name="arrowleft" size={28} color="#fff" />
@@ -124,17 +108,65 @@ export default function UserScreen({ navigation }) {
         />
       </View>
 
+      {/* Avatar e Nome */}
       <View style={styles.avatarContainer}>
-        <TouchableOpacity onPress={alterarFotoPerfil}>
-          <Image
-            source={fotoPerfil ? { uri: fotoPerfil } : require('../assets/default-avatar.png')}
-            style={styles.avatar}
-          />
-        </TouchableOpacity>
+        <Image
+          source={{ uri: fotoPerfil || 'https://cdn-icons-png.flaticon.com/512/1144/1144760.png' }}
+          style={styles.avatar}
+        />
         <Text style={styles.userName}>{userData.username || 'Carregando...'}</Text>
       </View>
 
+      {/* Cartão de opções */}
       <View style={styles.card}>
+        {/* Carrossel com setas */}
+        <Option
+          label="Escolher avatar"
+          icon="https://cdn-icons-png.flaticon.com/128/847/847969.png"
+          expanded={openSection === 'avatar'}
+          onPress={() => toggleSection('avatar')}
+        >
+          <View style={styles.carouselContainer}>
+            <TouchableOpacity
+              onPress={() => scrollRef.current?.scrollTo({ x: Math.max(scrollX - 100, 0), animated: true })}
+            >
+              <AntDesign name="leftcircleo" size={28} color="#000" />
+            </TouchableOpacity>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              ref={scrollRef}
+              onScroll={(e) => setScrollX(e.nativeEvent.contentOffset.x)}
+              scrollEventThrottle={16}
+              style={styles.avatarScroll}
+            >
+              {avataresFutebol.map((url, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => selecionarIcone(url)}
+                  style={styles.avatarOptionWrapper}
+                >
+                  {fotoPerfil === url ? (
+                    <View style={styles.selectedCircle}>
+                      <Image source={{ uri: url }} style={styles.avatarOptionImage} />
+                    </View>
+                  ) : (
+                    <Image source={{ uri: url }} style={styles.avatarOptionImage} />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              onPress={() => scrollRef.current?.scrollTo({ x: scrollX + 100, animated: true })}
+            >
+              <AntDesign name="rightcircleo" size={28} color="#000" />
+            </TouchableOpacity>
+          </View>
+        </Option>
+
+        {/* Alterar Informações */}
         <Option
           label="Alterar informações"
           icon="https://cdn-icons-png.flaticon.com/128/1250/1250615.png"
@@ -184,6 +216,7 @@ export default function UserScreen({ navigation }) {
           </TouchableOpacity>
         </Option>
 
+        {/* Outras opções */}
         <Option
           label="E-mail"
           icon="https://cdn-icons-png.flaticon.com/128/561/561127.png"
@@ -220,6 +253,7 @@ export default function UserScreen({ navigation }) {
         </Option>
       </View>
 
+      {/* Navbar inferior */}
       <View style={styles.navbar}>
         <FontAwesome5 name="calendar-alt" size={24} color="#fff" />
         <Ionicons name="trophy" size={24} color="#fff" />
@@ -273,6 +307,22 @@ const styles = StyleSheet.create({
   },
   avatarContainer: { alignItems: 'center', marginBottom: 10 },
   avatar: { width: 80, height: 80, borderRadius: 40 },
+  avatarOptionWrapper: {
+    marginHorizontal: 8,
+    borderRadius: 30,
+  },
+  selectedCircle: {
+    backgroundColor: '#fff', // círculo branco atrás do avatar selecionado
+    borderRadius: 35,
+    padding: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarOptionImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
   userName: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 5 },
   card: {
     width: '90%',
@@ -360,5 +410,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
+  },
+  carouselContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarScroll: {
+    maxHeight: 80,
+    marginHorizontal: 10,
   },
 });

@@ -11,6 +11,7 @@ export default function Cadastro({ navigation }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const validarEmailComDominios = (email) => {
     const regex = /^[^\s@]+@(gmail\.com|hotmail\.com|yahoo\.com|outlook\.com|live\.com)$/;
@@ -19,17 +20,17 @@ export default function Cadastro({ navigation }) {
 
   const handleCadastro = async () => {
     if (!username || !email || !password || !confirmPassword) {
-      Alert.alert('Erro', 'Preencha todos os campos!');
+      setErrorMessage('Preencha todos os campos!');
       return;
     }
 
     if (!validarEmailComDominios(email)) {
-      Alert.alert('Erro', 'Use um email válido de Gmail, Hotmail, Yahoo, Outlook ou Live!');
+      setErrorMessage('Use um email válido de Gmail, Hotmail, Yahoo, Outlook ou Live!');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Erro', 'As senhas não coincidem!');
+      setErrorMessage('As senhas não coincidem!');
       return;
     }
 
@@ -39,7 +40,7 @@ export default function Cadastro({ navigation }) {
 
       const emailExiste = users.some((u) => u.email === email);
       if (emailExiste) {
-        Alert.alert('Erro', 'Este e-mail já está cadastrado!');
+        setErrorMessage('Este e-mail já está cadastrado!');
         return;
       }
 
@@ -58,7 +59,7 @@ export default function Cadastro({ navigation }) {
       Alert.alert('Sucesso', 'Cadastro realizado com sucesso!');
       navigation.navigate('MenuPrincipal');
     } catch (error) {
-      Alert.alert('Erro', 'Erro ao conectar com o servidor');
+      setErrorMessage('Erro ao conectar com o servidor');
       console.log(error);
     }
   };
@@ -80,6 +81,9 @@ export default function Cadastro({ navigation }) {
 
       <Text style={styles.label}>confirmar senha</Text>
       <TextInput style={styles.input} secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
+
+      {/* Exibe o erro se houver */}
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
       <TouchableOpacity style={styles.button} onPress={handleCadastro}>
         <Text style={styles.buttonText}>cadastrar</Text>
@@ -150,5 +154,11 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
   },
 });

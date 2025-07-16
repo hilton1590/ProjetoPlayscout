@@ -1,4 +1,5 @@
-import { FontAwesome5, Ionicons, MaterialIcons } from '@expo/vector-icons';
+
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import {
@@ -13,34 +14,10 @@ import {
 } from 'react-native';
 
 export default function MenuPrincipal({ navigation }) {
-  const [matches, setMatches] = useState([]);
-  const [loadingMatch, setLoadingMatch] = useState(true);
   const [news, setNews] = useState([]);
   const [loadingNews, setLoadingNews] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [searchTerm, setSearchTerm] = useState('futebol');
-
-  useEffect(() => {
-    async function fetchMatch() {
-      try {
-        const response = await axios.get('https://v3.football.api-sports.io/fixtures', {
-          headers: {
-            'x-apisports-key': 'c33f4c4af00048fc32af1f462e2cb0ba', // sua chave de API
-          },
-          params: {
-            status: 'live', // ✅ CORRIGIDO AQUI
-          },
-        });
-        setMatches(response.data.response);
-      } catch (error) {
-        console.error('Erro ao buscar partidas ao vivo:', error);
-      } finally {
-        setLoadingMatch(false);
-      }
-    }
-
-    fetchMatch();
-  }, []);
 
   useEffect(() => {
     async function fetchNews() {
@@ -146,52 +123,6 @@ export default function MenuPrincipal({ navigation }) {
         ) : (
           <Text style={{ color: '#fff', textAlign: 'center' }}>Nenhuma notícia relevante encontrada.</Text>
         )}
-
-        <Text style={[styles.title, { marginTop: 20 }]}>Partidas ao vivo</Text>
-        {loadingMatch ? (
-          <ActivityIndicator size="large" color="#fff" />
-        ) : matches.length > 0 ? (
-          matches.map((match, index) => (
-            <View key={index} style={styles.matchCard}>
-              <Text style={styles.matchTitle}>
-                {match.league.name} - {match.league.round}
-              </Text>
-              <Text style={styles.matchSub}>
-                {match.teams.home.name} x {match.teams.away.name}
-              </Text>
-              <Text style={styles.broadcastIcon}>📡 Ao vivo</Text>
-
-              <View style={styles.scoreRow}>
-                <View style={styles.teamBox}>
-                  <Image source={{ uri: match.teams.home.logo }} style={styles.teamLogo} />
-                  <Text style={styles.teamName}>{match.teams.home.name}</Text>
-                </View>
-
-                <Text style={styles.score}>
-                  {match.goals.home ?? '-'} - {match.goals.away ?? '-'}
-                </Text>
-
-                <View style={styles.teamBox}>
-                  <Image source={{ uri: match.teams.away.logo }} style={styles.teamLogo} />
-                  <Text style={styles.teamNameRight}>{match.teams.away.name}</Text>
-                </View>
-              </View>
-
-              <Text style={styles.matchTime}>
-                {new Date(match.fixture.date).toLocaleTimeString([], {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
-
-              <TouchableOpacity onPress={() => navigation.navigate('DetalhesPartida', { match })}>
-                <Text style={styles.detailsLink}>Detalhes do Jogo e análise ao vivo</Text>
-              </TouchableOpacity>
-            </View>
-          ))
-        ) : (
-          <Text style={{ color: '#fff', textAlign: 'center' }}>Nenhuma partida ao vivo no momento.</Text>
-        )}
       </ScrollView>
 
       <View style={styles.navbar}>
@@ -204,8 +135,11 @@ export default function MenuPrincipal({ navigation }) {
         <TouchableOpacity onPress={() => navigation.navigate('Notificacoes')}>
           <Ionicons name="notifications" size={22} color="#fff" />
         </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Favoritos')}>
+          <Ionicons name="star" size={22} color="#fff" />
+        </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('User')}>
-          <MaterialIcons name="bar-chart" size={22} color="#fff" />
+          <Ionicons name="person" size={22} color="#fff" />
         </TouchableOpacity>
       </View>
     </View>
@@ -239,18 +173,6 @@ const styles = StyleSheet.create({
   newsTitle: { fontWeight: 'bold', fontSize: 14, marginTop: 8, color: '#000' },
   newsSource: { fontSize: 12, color: '#666', marginTop: 4, textAlign: 'right' },
   image: { width: '100%', height: 180, borderRadius: 10, resizeMode: 'cover' },
-  matchCard: { backgroundColor: '#fff', padding: 10, borderRadius: 12, alignItems: 'center', marginBottom: 15 },
-  matchTitle: { fontSize: 12, color: '#333' },
-  matchSub: { fontWeight: 'bold', fontSize: 16, marginBottom: 4 },
-  broadcastIcon: { fontSize: 18, marginBottom: 4 },
-  scoreRow: { flexDirection: 'row', justifyContent: 'space-around', width: '100%', alignItems: 'center', marginBottom: 4 },
-  teamBox: { alignItems: 'center', width: 80 },
-  teamLogo: { width: 40, height: 40, marginBottom: 2, resizeMode: 'contain' },
-  teamName: { color: '#3949ab', fontWeight: 'bold', fontSize: 13, textAlign: 'center' },
-  teamNameRight: { color: '#e53935', fontWeight: 'bold', fontSize: 13, textAlign: 'center' },
-  score: { fontSize: 20, fontWeight: 'bold', color: '#000' },
-  matchTime: { fontWeight: 'bold', fontSize: 16, marginBottom: 5 },
-  detailsLink: { color: '#1565c0', fontSize: 12, textAlign: 'center', textDecorationLine: 'underline' },
   navbar: {
     flexDirection: 'row',
     justifyContent: 'space-around',

@@ -10,7 +10,7 @@ import axios from 'axios';
 const API_KEY = '6873e62710ee00a679445c6e0c5656f7570db2473835f2771e516a300c820c45';
 const BASE_URL = 'https://apiv2.allsportsapi.com/football/';
 
-export default function SeuTime({ navigation }) {
+export default function Notificacoes({ navigation }) {
   const [search, setSearch] = useState('');
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -191,6 +191,7 @@ export default function SeuTime({ navigation }) {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
+        {/* Topo com botão de voltar e logo */}
         <View style={styles.topBar}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -202,7 +203,7 @@ export default function SeuTime({ navigation }) {
 
           <Image source={require('../assets/logo.png')} style={styles.logo} />
 
-          <Ionicons name="notifications" size={24} color="#fff" />
+          <View style={{ width: 24 }} /> {/* espaço vazio para alinhar */}
         </View>
 
         <Text style={styles.title}>Buscar times</Text>
@@ -217,7 +218,6 @@ export default function SeuTime({ navigation }) {
             onChangeText={setSearch}
             onSubmitEditing={() => buscarTimesPorNome(search)}
             returnKeyType="search"
-            clearButtonMode="while-editing"
           />
           <TouchableOpacity onPress={() => buscarTimesPorNome(search)} style={styles.searchButton}>
             <Ionicons name="search" size={24} color="#fff" />
@@ -270,21 +270,21 @@ export default function SeuTime({ navigation }) {
               </>
             )}
 
-          {selectedTeam.fixtures?.length > 0 && (
-          <>
-            <Text style={styles.section}>📅 Próximos jogos:</Text>
-            {selectedTeam.fixtures.map((f, index) => (
-              <Text key={index} style={styles.text}>
-                {f.homeTeam} x {f.awayTeam} - {f.fixture_date ? f.fixture_date.slice(0, 10) : 'Data não disponível'}
-              </Text>
-            ))}
-          </>
-        )}
-
+            {selectedTeam.fixtures?.length > 0 && (
+              <>
+                <Text style={styles.section}>📅 Próximos jogos:</Text>
+                {selectedTeam.fixtures.map((f, index) => (
+                  <Text key={index} style={styles.text}>
+                    {f.homeTeam} x {f.awayTeam} - {f.fixture_date?.slice(0, 10)}
+                  </Text>
+                ))}
+              </>
+            )}
           </ScrollView>
         )}
       </View>
 
+      {/* Botão de ir para favoritos */}
       {Object.keys(favorites).length > 0 && (
         <TouchableOpacity
           style={styles.fullButton}
@@ -293,21 +293,6 @@ export default function SeuTime({ navigation }) {
           <Text style={styles.fullButtonText}>⭐ Ver Times Favoritos</Text>
         </TouchableOpacity>
       )}
-
-      <View style={styles.navbar}>
-        <TouchableOpacity onPress={() => navigation.navigate('Calendario')}>
-          <FontAwesome5 name="calendar-alt" size={22} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Torneios')}>
-          <Ionicons name="trophy" size={22} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Notificacoes')}>
-          <Ionicons name="notifications" size={22} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Estatisticas')}>
-          <MaterialIcons name="bar-chart" size={22} color="#fff" />
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }
@@ -426,7 +411,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
-    marginBottom: 50,
+    marginBottom: 20,
     zIndex: 2,
   },
   fullButtonText: {
@@ -435,3 +420,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+

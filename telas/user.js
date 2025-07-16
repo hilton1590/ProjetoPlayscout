@@ -29,14 +29,14 @@ if (Platform.OS === 'android') {
 }
 
 const avataresFutebol = [
-  'https://img.icons8.com/?size=100&id=84687&format=png&color=000000',      
-  'https://img.icons8.com/?size=100&id=84686&format=png&color=000000',     
-  'https://img.icons8.com/?size=100&id=84688&format=png&color=000000',     
-  'https://img.icons8.com/?size=100&id=84689&format=png&color=000000',       
-  'https://img.icons8.com/?size=100&id=84690&format=png&color=000000',     
-  'https://img.icons8.com/?size=100&id=84691&format=png&color=000000',     
-  'https://img.icons8.com/?size=100&id=84693&format=png&color=000000',     
-  'https://img.icons8.com/?size=100&id=36878&format=png&color=000000',     
+  'https://img.icons8.com/?size=100&id=84687&format=png&color=000000',
+  'https://img.icons8.com/?size=100&id=84686&format=png&color=000000',
+  'https://img.icons8.com/?size=100&id=84688&format=png&color=000000',
+  'https://img.icons8.com/?size=100&id=84689&format=png&color=000000',
+  'https://img.icons8.com/?size=100&id=84690&format=png&color=000000',
+  'https://img.icons8.com/?size=100&id=84691&format=png&color=000000',
+  'https://img.icons8.com/?size=100&id=84693&format=png&color=000000',
+  'https://img.icons8.com/?size=100&id=36878&format=png&color=000000',
 ];
 
 export default function UserScreen({ navigation }) {
@@ -52,12 +52,8 @@ export default function UserScreen({ navigation }) {
       try {
         const data = await AsyncStorage.getItem('userData');
         const avatar = await AsyncStorage.getItem('userAvatar');
-        if (data) {
-          setUserData(JSON.parse(data));
-        }
-        if (avatar) {
-          setFotoPerfil(avatar);
-        }
+        if (data) setUserData(JSON.parse(data));
+        if (avatar) setFotoPerfil(avatar);
       } catch (e) {
         console.error('Erro ao carregar usuário:', e);
       }
@@ -82,7 +78,7 @@ export default function UserScreen({ navigation }) {
         username: userData.username,
         email: userData.email,
         password: userData.password,
-        icon: fotoPerfil, // Atualizando o campo icon no backend também
+        icon: fotoPerfil,
       });
 
       await AsyncStorage.setItem('userData', JSON.stringify(response.data));
@@ -118,7 +114,7 @@ export default function UserScreen({ navigation }) {
 
       {/* Cartão de opções */}
       <View style={styles.card}>
-        {/* Carrossel com setas */}
+        {/* Carrossel */}
         <Option
           label="Escolher avatar"
           icon="https://cdn-icons-png.flaticon.com/128/847/847969.png"
@@ -127,7 +123,9 @@ export default function UserScreen({ navigation }) {
         >
           <View style={styles.carouselContainer}>
             <TouchableOpacity
-              onPress={() => scrollRef.current?.scrollTo({ x: Math.max(scrollX - 100, 0), animated: true })}
+              onPress={() =>
+                scrollRef.current?.scrollTo({ x: Math.max(scrollX - 100, 0), animated: true })
+              }
             >
               <AntDesign name="leftcircleo" size={28} color="#000" />
             </TouchableOpacity>
@@ -251,14 +249,6 @@ export default function UserScreen({ navigation }) {
           <Text style={styles.subOption}>Política</Text>
         </Option>
       </View>
-
-      {/* Navbar inferior */}
-      <View style={styles.navbar}>
-        <FontAwesome5 name="calendar-alt" size={24} color="#fff" />
-        <Ionicons name="trophy" size={24} color="#fff" />
-        <Ionicons name="notifications" size={24} color="#fff" />
-        <MaterialIcons name="bar-chart" size={24} color="#fff" />
-      </View>
     </View>
   );
 }
@@ -306,22 +296,15 @@ const styles = StyleSheet.create({
   },
   avatarContainer: { alignItems: 'center', marginBottom: 10 },
   avatar: { width: 80, height: 80, borderRadius: 40 },
-  avatarOptionWrapper: {
-    marginHorizontal: 8,
-    borderRadius: 30,
-  },
+  avatarOptionWrapper: { marginHorizontal: 8, borderRadius: 30 },
   selectedCircle: {
-    backgroundColor: '#fff', // círculo branco atrás do avatar selecionado
+    backgroundColor: '#fff',
     borderRadius: 35,
     padding: 5,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarOptionImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-  },
+  avatarOptionImage: { width: 60, height: 60, borderRadius: 30 },
   userName: { color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: 5 },
   card: {
     width: '90%',
@@ -330,34 +313,12 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 20,
   },
-  optionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  optionIcon: {
-    width: 24,
-    height: 24,
-    marginRight: 10,
-  },
-  optionLabel: {
-    fontSize: 16,
-    color: '#000',
-    fontWeight: '500',
-  },
-  expandedContent: {
-    marginTop: 10,
-    paddingLeft: 34,
-  },
-  subOption: {
-    fontSize: 18,
-    color: '#333',
-    marginBottom: 5,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
+  optionRow: { flexDirection: 'row', alignItems: 'center' },
+  optionIcon: { width: 24, height: 24, marginRight: 10 },
+  optionLabel: { fontSize: 16, color: '#000', fontWeight: '500' },
+  expandedContent: { marginTop: 10, paddingLeft: 34 },
+  subOption: { fontSize: 18, color: '#333', marginBottom: 5 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   inputLabel: {
     width: 80,
     fontSize: 14,
@@ -383,11 +344,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  inputField: {
-    flex: 1,
-    color: '#000',
-    paddingLeft: 10,
-  },
+  inputField: { flex: 1, color: '#000', paddingLeft: 10 },
   saveButton: {
     backgroundColor: '#000',
     paddingVertical: 10,
@@ -395,21 +352,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 10,
   },
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  navbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#444',
-    paddingVertical: 10,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-  },
+  saveButtonText: { color: '#fff', fontWeight: 'bold' },
   carouselContainer: {
     flexDirection: 'row',
     alignItems: 'center',

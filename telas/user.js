@@ -89,6 +89,29 @@ export default function UserScreen({ navigation }) {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      // Verifica se o avatar está armazenado e salva em outro lugar antes de remover
+      const avatar = await AsyncStorage.getItem('userAvatar');
+      
+      // Remove os dados do usuário e avatar do AsyncStorage
+      await AsyncStorage.removeItem('userData'); 
+      await AsyncStorage.removeItem('userAvatar'); 
+
+      // Verifica se existe o avatar salvo e mantém até que o usuário faça login novamente
+      if (avatar) {
+        await AsyncStorage.setItem('userAvatar', avatar); 
+      }
+
+      // Redireciona para a tela de login
+      navigation.replace('Login'); 
+
+    } catch (error) {
+      console.error('Erro ao sair:', error);
+      Alert.alert('Erro', 'Não foi possível sair da conta.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Cabeçalho */}
@@ -248,6 +271,11 @@ export default function UserScreen({ navigation }) {
           <Text style={styles.subOption}>Contato: playscout@gmail.com</Text>
           <Text style={styles.subOption}>Política</Text>
         </Option>
+
+        {/* Botão Sair */}
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutButtonText}>Sair da conta</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -360,5 +388,16 @@ const styles = StyleSheet.create({
   avatarScroll: {
     maxHeight: 80,
     marginHorizontal: 10,
+  },
+  logoutButton: {
+    backgroundColor: 'red',  // Cor de fundo vermelha
+    paddingVertical: 10,      // Padding vertical
+    borderRadius: 8,         // Bordas arredondadas
+    alignItems: 'center',    // Alinha o texto no centro
+    marginTop: 20,           // Espaçamento superior
+  },
+  logoutButtonText: {
+    color: '#fff',           // Cor do texto (branco)
+    fontWeight: 'bold',      // Negrito no texto
   },
 });

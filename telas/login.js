@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   ScrollView, View, Text, TextInput, TouchableOpacity,
-  Image, StyleSheet, Alert,
+  Image, StyleSheet, Alert
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,8 +9,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [errorMessage, setErrorMessage] = useState(''); // Estado para mensagem de erro
 
   const handleLogin = async () => {
+    if (!email || !senha) {
+      setErrorMessage('Preencha todos os campos!');
+      return;
+    }
+
     try {
       const response = await axios.get('http://localhost:3000/users');
       const users = response.data;
@@ -22,10 +28,10 @@ export default function LoginScreen({ navigation }) {
         Alert.alert('Sucesso', 'Login efetuado!');
         navigation.navigate('MenuPrincipal');
       } else {
-        Alert.alert('Erro', 'E-mail ou senha inválidos');
+        setErrorMessage('E-mail ou senha inválidos');
       }
     } catch (error) {
-      Alert.alert('Erro', 'Falha na conexão com o servidor');
+      setErrorMessage('Falha na conexão com o servidor');
     }
   };
 
@@ -54,6 +60,9 @@ export default function LoginScreen({ navigation }) {
         placeholderTextColor="#999"
         secureTextEntry
       />
+
+      {/* Exibe a mensagem de erro, se houver */}
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>entrar</Text>
@@ -124,5 +133,11 @@ const styles = StyleSheet.create({
   linkText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  errorText: {
+    color: 'red',
+    fontWeight: 'bold',
+    marginBottom: 10,
+    textAlign: 'center',
   },
 });

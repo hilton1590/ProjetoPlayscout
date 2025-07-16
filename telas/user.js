@@ -51,9 +51,15 @@ export default function UserScreen({ navigation }) {
     async function loadUserData() {
       try {
         const data = await AsyncStorage.getItem('userData');
-        const avatar = await AsyncStorage.getItem('userAvatar');
-        if (data) setUserData(JSON.parse(data));
-        if (avatar) setFotoPerfil(avatar);
+        if (data) {
+          const user = JSON.parse(data);
+          setUserData(user);
+          // Carregar foto de perfil usando o ID do usuário para garantir unicidade
+          const avatar = await AsyncStorage.getItem(`userAvatar_${user.id}`);
+          if (avatar) {
+            setFotoPerfil(avatar);
+          }
+        }
       } catch (e) {
         console.error('Erro ao carregar usuário:', e);
       }
@@ -68,7 +74,8 @@ export default function UserScreen({ navigation }) {
 
   const selecionarIcone = async (url) => {
     setFotoPerfil(url);
-    await AsyncStorage.setItem('userAvatar', url);
+    // Salvar foto de perfil no AsyncStorage com a chave única para o usuário
+    await AsyncStorage.setItem(`userAvatar_${userData.id}`, url);
     Alert.alert('Sucesso', 'Avatar atualizado!');
   };
 
@@ -92,15 +99,15 @@ export default function UserScreen({ navigation }) {
   const handleLogout = async () => {
     try {
       // Verifica se o avatar está armazenado e salva em outro lugar antes de remover
-      const avatar = await AsyncStorage.getItem('userAvatar');
+      const avatar = await AsyncStorage.getItem(`userAvatar_${userData.id}`);
       
       // Remove os dados do usuário e avatar do AsyncStorage
-      await AsyncStorage.removeItem('userData'); 
-      await AsyncStorage.removeItem('userAvatar'); 
+      await AsyncStorage.removeItem('userData');
+      await AsyncStorage.removeItem(`userAvatar_${userData.id}`); 
 
       // Verifica se existe o avatar salvo e mantém até que o usuário faça login novamente
       if (avatar) {
-        await AsyncStorage.setItem('userAvatar', avatar); 
+        await AsyncStorage.setItem(`userAvatar_${userData.id}`, avatar); 
       }
 
       // Redireciona para a tela de login

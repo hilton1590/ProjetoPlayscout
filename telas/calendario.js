@@ -68,7 +68,7 @@ export default function Calendario({ navigation }) {
       if (resp.data.success === 1 && Array.isArray(resp.data.result)) {
         const sorted = resp.data.result.sort(
           (a, b) =>
-            new Date(`${a.event_date}T${a.event_time}:00-03:00`) -
+            new Date(`${a.event_date}T${a.event_time}:00-03:00`) - 
             new Date(`${b.event_date}T${b.event_time}:00-03:00`)
         );
         setFixtures(sorted);
@@ -243,14 +243,17 @@ export default function Calendario({ navigation }) {
         <Text style={styles.noGames}>Nenhum jogo disponível hoje.</Text>
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
-          {orderedLeagues.map((league) => (
-            <View key={league}>
-              <View style={styles.leagueContainer}>
-                <Text style={styles.leagueTitle}>🏆 {league}</Text>
+          {orderedLeagues.map((league) => {
+            const leagueName = league.split(' (')[0]; // Remove a parte do país, se necessário
+            return (
+              <View key={league}>
+                <View style={styles.leagueContainer}>
+                  <Text style={styles.leagueTitle}>🏆 {leagueName}</Text>
+                </View>
+                {groupedFilteredFixtures[league].map((game) => renderItem(game))}
               </View>
-              {groupedFilteredFixtures[league].map((game) => renderItem(game))}
-            </View>
-          ))}
+            );
+          })}
         </ScrollView>
       )}
     </View>

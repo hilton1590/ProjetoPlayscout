@@ -12,7 +12,7 @@ import {
   View
 } from 'react-native';
 
-const API_KEY = '8c54011079c4f1b49846ec32e822b41d8cd8b1aa2da96cfaf5b6860db3293378';
+const API_KEY = 'bbb3c7c6ce20f664a2eb963dc043e6cdda8d18824aca08fca154592c2dcd023e';
 
 const mainLeagues = [
   'Premier League',
@@ -30,7 +30,7 @@ function translateStatus(statusRaw) {
   const s = statusRaw.toLowerCase();
 
   if (/^\d+(\+\d+)?$/.test(s)) {
-    return `${statusRaw}'`;
+    return `${statusRaw}`;
   }
 
   if (s === 'finished' || s === 'ft') return 'Finalizado';
@@ -244,7 +244,7 @@ export default function Calendario({ navigation }) {
       ) : (
         <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
           {orderedLeagues.map((league) => {
-            const leagueName = league.split(' (')[0]; // Remove a parte do país, se necessário
+            const leagueName = league.split(' (')[0];
             return (
               <View key={league}>
                 <View style={styles.leagueContainer}>

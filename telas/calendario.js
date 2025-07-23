@@ -12,7 +12,7 @@ import {
   View
 } from 'react-native';
 
-const API_KEY = 'bbb3c7c6ce20f664a2eb963dc043e6cdda8d18824aca08fca154592c2dcd023e';
+const API_KEY = 'bbb3c7c6ce20f664a2eb963dc043e6cdda8d18824aca08fca154592c2dcd023e'; //pessoal
 
 const mainLeagues = [
   'Premier League',
